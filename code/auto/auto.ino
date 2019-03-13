@@ -78,6 +78,7 @@ volatile bool IR_flag1 = 0; // Interruptflag 1/0, wenn 1 dann wurde Interrupt1 (
 // Gyroskop
 MPU6050 mpu6050(Wire);
 int gradcounter = 0; // Drehvariable
+bool gyro = 0; // Rückgabe der Funktion gyro_sensor
 int gyro_delay = 50; // Wartezeit zwischen den Ausleseversuchen des Gyroskops
 
 // Funktionsprototypen
@@ -261,8 +262,6 @@ int ir_sensor() {
 }
 
 void turn(int grad) {
-  bool gyro = 0;
-
   mpu6050.update(); // Werte des Sensors aktualisieren
   signed short int cur_angle = mpu6050.getAngleZ(); // Winkel beim Starten der Funktion
   Serial.print("TURN INITIAL -");  Serial.println(cur_angle); // DEBUG ONLY
@@ -285,7 +284,7 @@ void turn(int grad) {
   // Motor 2 aus
   digitalWrite(in3, LOW);
   digitalWrite(in4, LOW);
-
+  gyro = 0;
 }
 bool gyro_sensor(signed short int angle, int grad) {
   // Angle = Winkel beim Starten der Funktion
@@ -301,9 +300,9 @@ bool gyro_sensor(signed short int angle, int grad) {
     Serial.print("GYRO -");  Serial.println(cur_angle); // DEBUG ONLY
   }
 
-  if (cur_angle <= angle - grad) {
-    return 0; // Fehler bei Drehung
-  }
+  // if (cur_angle <= angle - grad) {
+  //   return 0; // Fehler bei Drehung
+  // }
   Serial.print(grad); // DEBUG ONLY
   Serial.println("° Drehung abgeschlossen"); // DEBUG ONLY
   return 1; // Drehung abgeschlossen
