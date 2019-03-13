@@ -66,14 +66,11 @@ byte bumpPin1 = 3; // Vorne
 // Sharp Infrarotsensoren
 int ir_entf = 209;  // 20cm = ca. 333 (David @Home) 209 (Schule)
 byte ir1 = 14; // Sharp IR Entfernungssensor vorne
-byte ir2 = 15; // Sharp IR Entfernungssensor hinten
+byte ir2 = 15; // Sharp IR Entfernungssensor hinten (UNUSED)
 int ir_delay = 50; // Wartezeit zwischen den Ausleseversuchen des IRSensors
 
 // Zeitrelevant
-const unsigned short halfsec = 500;  // Dauer von 0.5 Sekunden
-const unsigned short ngrad = 900;  // Dauer von 0.67/0.8 Sekunden, eine 90° Drehung
-const unsigned short oneeightyg = 1100;  // Dauer von 1.1 Sekunden, eine 180° Drehung
-const unsigned short onesec = 1000;  // Dauer von 1 Sekunde
+const unsigned short sec = 1000;  // Dauer von 1 Sekunde
 
 // Interruptbezogen
 volatile bool IR_flag1 = 0; // Interruptflag 1/0, wenn 1 dann wurde Interrupt1 (bump_ISR) ausgelöst
@@ -81,6 +78,7 @@ volatile bool IR_flag1 = 0; // Interruptflag 1/0, wenn 1 dann wurde Interrupt1 (
 // Gyroskop
 MPU6050 mpu6050(Wire);
 int gradcounter = 0; // Drehvariable
+int gyro_delay = 50; // Wartezeit zwischen den Ausleseversuchen des Gyroskops
 
 // Funktionsprototypen
 
@@ -225,8 +223,8 @@ int ir_sensor() {
     // Entfernung auslesen
     distanceV = analogRead(ir1); // Entfernungswert des Sensors übergeben
     sumV += distanceV; // Entfernungswert zur Summe addieren
-    Serial.print("Wirklicher Wert? - "); // DEBUG ONLY
-    Serial.println(sumV / i); // DEBUG ONLY
+    //Serial.print("Wirklicher Wert? - "); // DEBUG ONLY
+    //Serial.println(sumV / i); // DEBUG ONLY
     wartezeit(ir_delay);
   }
   sumV = sumV / repeat1; // Mittelwert ausrechnen
@@ -264,18 +262,19 @@ int ir_sensor() {
 
 void turn(int grad) {
   bool gyro = 0;
-  
+
   mpu6050.update(); // Werte des Sensors aktualisieren
   signed short int cur_angle = mpu6050.getAngleZ(); // Winkel beim Starten der Funktion
-
-  // Rechtsdrehung
-  // Motor 1 rückwärts
-  digitalWrite(in1, LOW);
-  digitalWrite(in2, HIGH);
-  // Motor 2 vorwärts
-  digitalWrite(in3, LOW);
-  digitalWrite(in4, HIGH);
-
+  Serial.print("TURN INITIAL -");  Serial.println(cur_angle); // DEBUG ONLY
+  /* disabled for easier debugging
+    // Rechtsdrehung
+    // Motor 1 rückwärts
+    digitalWrite(in1, LOW);
+    digitalWrite(in2, HIGH);
+    // Motor 2 vorwärts
+    digitalWrite(in3, LOW);
+    digitalWrite(in4, HIGH);
+  */
   while (gyro == 0) {
     gyro = gyro_sensor(cur_angle, grad);
   }
@@ -292,32 +291,31 @@ bool gyro_sensor(signed short int angle, int grad) {
   // Angle = Winkel beim Starten der Funktion
   // Grad = Zu erreichender Winkel(Gradzahl)
   signed short int cur_angle = angle; // Aktueller Wert
-
+  Serial.print("GYRO INIT CURANGLE -");  Serial.println(cur_angle); // DEBUG ONLY
+  Serial.print("GYRO INIT ANGLE -");  Serial.println(angle); // DEBUG ONLY
   // Warte, bis das Gyroskop eine vollständige X° Drehung erfasst hat (<-180)
   while (cur_angle >= angle - grad) {
     mpu6050.update(); // Werte des Sensors aktualisieren
     cur_angle = mpu6050.getAngleZ(); // Werte der Z-Achse (Drehwinkel) übergeben
-    //wartezeit(gyro_delay);
+    wartezeit(gyro_delay);
     Serial.print("GYRO -");  Serial.println(cur_angle); // DEBUG ONLY
   }
 
-
-  if (cur_angle >= angle - grad) {
-    Serial.print(grad); // DEBUG ONLY
-    Serial.println("° Drehung abgeschlossen"); // DEBUG ONLY
-    return 1; // Drehung Abgeschlossen
+  if (cur_angle <= angle - grad) {
+    return 0; // Fehler bei Drehung
   }
-
-  return 0; // Fehler bei Drehung?!
+  Serial.print(grad); // DEBUG ONLY
+  Serial.println("° Drehung abgeschlossen"); // DEBUG ONLY
+  return 1; // Drehung abgeschlossen
 }
 // Ersatz für delay() mithilfe millis()
 void wartezeit(unsigned short dauer) {
   unsigned short currentMillis = 0; // Aktueller Zeitpunkt
   unsigned short startMillis = (unsigned short)millis(); // Startpunkt der Wartefunktion in ms
-  Serial.print("WAIT - "); // DEBUG ONLY
-  Serial.print(dauer); // DEBUG ONLY
+  //Serial.print("WAIT - "); // DEBUG ONLY
+  //Serial.print(dauer); // DEBUG ONLY
   do {
     currentMillis = (unsigned short)millis(); // Aktueller Zeitpunkt in ms
   } while (currentMillis - startMillis <= dauer); // Führe oberes aus, bis die Dauer verstrichen ist
-  Serial.println(" ...DONE!"); // DEBUG ONLY
+  //Serial.println(" ...DONE!"); // DEBUG ONLY
 }
