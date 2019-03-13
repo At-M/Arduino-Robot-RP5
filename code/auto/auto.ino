@@ -84,9 +84,11 @@ int gradcounter = 0; // Drehvariable
 
 // Funktionsprototypen
 
-// Sensorfunktion
+// Sensorfunktionen
 int ir_sensor(); // Input: Nichts | Rückgabe: Integer
+bool gyro_sensor(signed short int angle, int grad); // Input: Aktueller Winkel, zu Drehende Gradzahl | Rückgabe: Bool
 
+// Drehfunktion
 void turn(int); // Input: Gradzahl | Rückgabe: Nichts
 
 // Wartefunktion (Ersatz für delay();)
@@ -261,13 +263,10 @@ int ir_sensor() {
 }
 
 void turn(int grad) {
-
+  bool gyro = 0;
+  
   mpu6050.update(); // Werte des Sensors aktualisieren
-
-  signed short int angle = mpu6050.getAngleZ(); // Winkel beim Starten der Funktion
-  signed short int cur_angle = angle; // Aktueller Winkel
-
-
+  signed short int cur_angle = mpu6050.getAngleZ(); // Winkel beim Starten der Funktion
 
   // Rechtsdrehung
   // Motor 1 rückwärts
@@ -278,7 +277,7 @@ void turn(int grad) {
   digitalWrite(in4, HIGH);
 
   while (gyro == 0) {
-    gyro = gyro_sensor(angle, grad);
+    gyro = gyro_sensor(cur_angle, grad);
   }
   // Anhalten
   // Motor 1 aus
@@ -290,20 +289,26 @@ void turn(int grad) {
 
 }
 bool gyro_sensor(signed short int angle, int grad) {
-  // Angle = start_angle
-  // Grad = Zu erreichende Gradzahl
+  // Angle = Winkel beim Starten der Funktion
+  // Grad = Zu erreichender Winkel(Gradzahl)
+  signed short int cur_angle = angle; // Aktueller Wert
 
-    // Warte, bis das Gyroskop eine vollständige 180° Drehung erfasst hat (<-180)
-    while (cur_angle >= angle - grad) {
-      mpu6050.update(); // Werte des Sensors aktualisieren
-      cur_angle = mpu6050.getAngleZ(); // Werte der Z-Achse (Drehwinkel) übergeben
-      //wartezeit(gyro_delay);
-      Serial.print("SIR(180) -");  Serial.println(cur_angle); // DEBUG ONLY
-    }
-  Serial.print(grad); // DEBUG ONLY
-  Serial.println("° Drehung abgeschlossen"); // DEBUG ONLY
+  // Warte, bis das Gyroskop eine vollständige X° Drehung erfasst hat (<-180)
+  while (cur_angle >= angle - grad) {
+    mpu6050.update(); // Werte des Sensors aktualisieren
+    cur_angle = mpu6050.getAngleZ(); // Werte der Z-Achse (Drehwinkel) übergeben
+    //wartezeit(gyro_delay);
+    Serial.print("GYRO -");  Serial.println(cur_angle); // DEBUG ONLY
+  }
 
 
+  if (cur_angle >= angle - grad) {
+    Serial.print(grad); // DEBUG ONLY
+    Serial.println("° Drehung abgeschlossen"); // DEBUG ONLY
+    return 1; // Drehung Abgeschlossen
+  }
+
+  return 0; // Fehler bei Drehung?!
 }
 // Ersatz für delay() mithilfe millis()
 void wartezeit(unsigned short dauer) {
