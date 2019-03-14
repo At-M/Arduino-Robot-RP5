@@ -153,19 +153,28 @@ void loop()
     leftvar = ir_sensor(1);
     // wenn entfernung links zu klein
     while (leftvar == 1) {
-      digitalWrite(17, HIGH); // LED Rot aus
-      // dann drehe Motorgeschwindgkeit links hoch
-      motorvarL = motorvarL + 5;
-      motorvarR = motorvarR - 5;
-      if (motorvarL > 255) {
+      digitalWrite(17, HIGH); // LED Rot an
+
+
+      // Korrigieren
+      turn(10, 1); // 10°
+
+      /* Während der Fahrt korrigieren
+        // dann drehe Motorgeschwindgkeit links hoch
+        motorvarL = motorvarL + 5;
+        motorvarR = motorvarR - 5;
+        if (motorvarL > 255) {
         motorvarL = 255;
-      } // Damit der Maximalwert 255 ist.
-      if (motorvarR < 0) {
+        } // Damit der Maximalwert 255 ist.
+        if (motorvarR < 0) {
         motorvarR = 0;
-      } // Damit der Minimalwert 0 ist.
-      analogWrite(GSM1, motorvarR); // Rechter Motor
-      analogWrite(GSM2, motorvarL); // Linker Motor
-      wartezeit(500);
+        } // Damit der Minimalwert 0 ist.
+        analogWrite(GSM1, motorvarR); // Rechter Motor
+        analogWrite(GSM2, motorvarL); // Linker Motor
+        wartezeit(500);
+
+
+      */
       leftvar = 0;
       digitalWrite(17, LOW); // LED Rot aus
     }
@@ -385,7 +394,33 @@ void turn(int grad, bool korrig) {
       wartezeit(500);
       break;
     case 1:
-      // Korrigieren!
+      
+       // Motor 1 aus
+      digitalWrite(in1, LOW);
+      digitalWrite(in2, LOW);
+      // Motor 2 aus
+      digitalWrite(in3, LOW);
+      digitalWrite(in4, LOW);
+
+      // Rechtsdrehung
+      // Motor 1 rückwärts
+      digitalWrite(in1, LOW);
+      digitalWrite(in2, HIGH);
+      // Motor 2 vorwärts
+      digitalWrite(in3, LOW);
+      digitalWrite(in4, HIGH);
+
+      while (gyro == 0) {
+        gyro = gyro_sensor(cur_angle, grad);
+      }
+      // Anhalten
+      // Motor 1 aus
+      digitalWrite(in1, LOW);
+      digitalWrite(in2, LOW);
+      // Motor 2 aus
+      digitalWrite(in3, LOW);
+      digitalWrite(in4, LOW);
+      wartezeit(500);
       break;
     default:
       // Not happening
