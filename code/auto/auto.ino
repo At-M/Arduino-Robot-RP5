@@ -152,6 +152,11 @@ void loop()
 
   while (sensorvar == 0) {
     sensorvar = ir_sensor();
+    // Checke entfernung links (kleiner als "gegenfahren und rückwärts" aber größer gegenfahren
+    // wenn entfernung links zu klein
+      // dann drehe motorgeschwindgkeit links hoch
+    // wenn entfernung groß genug
+     // setze motorgeschw zurück
   }
   // Anhalten
   // Motor 1 aus
