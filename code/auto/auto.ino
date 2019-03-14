@@ -214,7 +214,7 @@ void loop()
       digitalWrite(16, LOW); // LED Grün aus
       digitalWrite(17, HIGH); // LED Rot ein
 
-      turn(340, 0); // 180° -> 360
+      turn(320, 0); // 180° -> 360-340
 
       Serial.println("MAX - 180 grad gedreht"); // DEBUG ONLY
       gradcounter--; // Drehvariable auf 0 setzen (1 subtrahieren)
