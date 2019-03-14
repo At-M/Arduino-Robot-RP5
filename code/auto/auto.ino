@@ -426,6 +426,12 @@ void turn(int grad, bool korrig) {
       digitalWrite(in3, LOW);
       digitalWrite(in4, LOW);
       //wartezeit(500);
+      // Motor 1 vorwärts
+      digitalWrite(in1, HIGH);
+      digitalWrite(in2, LOW);
+      // Motor 2 vorwärts
+      digitalWrite(in3, LOW);
+      digitalWrite(in4, HIGH);
       break;
     default:
       // Not happening
