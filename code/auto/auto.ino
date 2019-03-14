@@ -150,6 +150,7 @@ void loop()
 
   while (sensorvar == 0) {
     sensorvar = ir_sensor(0); // Sensor 0 = Vorne
+    sensorvar = bumpers(); // Taster vorne checken
     // Checke entfernung links (kleiner als "gegenfahren und rückwärts" aber größer gegenfahren
     leftvar = ir_sensor(1);
     // wenn entfernung links zu klein
@@ -348,6 +349,18 @@ int ir_sensor(bool sensornr) {
     default:
       // not happening
       break;
+  }
+}
+// ######################## BUMPER ########################
+bool bumpers() {
+  int value = digitalRead(bumpPin1);
+  if (value == 0) {
+    Serial.println("BUMP - Gegengefahren"); // DEBUG ONLY
+    return 1; // Gegengefahren
+  }
+  else {
+    Serial.println("BUMP - OK"); // DEBUG ONLY
+    return 0; // Kein Kontakt
   }
 }
 // ######################## TURN ########################
