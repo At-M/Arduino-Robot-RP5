@@ -131,11 +131,12 @@ void loop()
 {
   int sensorvar = 0;
   int leftvar = 0;
-  int motorvar = 210;
+  int motorvarR = 160; // Rechter Motor (160)
+  int motorvarL = 207; // Linker Motor (210)
 
   // Motorengeschwindigkeit festlegen
-  analogWrite(GSM1, 160); // Rechter Motor (160)
-  analogWrite(GSM2, 210); // Linker Motor (210)
+  analogWrite(GSM1, motorvarR); // Rechter Motor
+  analogWrite(GSM2, motorvarL); // Linker Motor
 
   Serial.println("MOVE - INITIAL START"); // DEBUG ONLY
 
@@ -152,18 +153,26 @@ void loop()
     leftvar = ir_sensor(1);
     // wenn entfernung links zu klein
     while (leftvar == 1) {
-      // dann drehe motorgeschwindgkeit links hoch
-      motorvar = motorvar + 3;
-      if (motorvar > 255) {
-        motorvar = 255;
+      digitalWrite(17, HIGH); // LED Rot aus
+      // dann drehe Motorgeschwindgkeit links hoch
+      motorvarL = motorvarL + 5;
+      motorvarR = motorvarR - 5;
+      if (motorvarL > 255) {
+        motorvarL = 255;
       } // Damit der Maximalwert 255 ist.
-      analogWrite(GSM2, motorvar); // Linker Motor (210)
-      wartezeit(sec);
-      leftvar = 1;
+      if (motorvarR < 0) {
+        motorvarR = 0;
+      } // Damit der Minimalwert 0 ist.
+      analogWrite(GSM1, motorvarR); // Rechter Motor
+      analogWrite(GSM2, motorvarL); // Linker Motor
+      wartezeit(500);
+      leftvar = 0;
+      digitalWrite(17, LOW); // LED Rot aus
     }
     // wenn entfernung groß genug
     // setze motorgeschw zurück
     analogWrite(GSM2, 210); // Linker Motor (210)
+
   }
   // Anhalten
   // Motor 1 aus
@@ -195,7 +204,7 @@ void loop()
       digitalWrite(16, LOW); // LED Grün aus
       digitalWrite(17, HIGH); // LED Rot ein
 
-      turn(350, 0); // 180° -> 360
+      turn(340, 0); // 180° -> 360
 
       Serial.println("MAX - 180 grad gedreht"); // DEBUG ONLY
       gradcounter--; // Drehvariable auf 0 setzen (1 subtrahieren)
