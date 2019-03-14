@@ -8,7 +8,7 @@
    Feb-Mar 2019
 
    TODO:
-   
+
   Hinderniserkennung beim Rückwärtsfahren?
   Codecleanup
   Langsam stoppen um Getriebe/Motor zu schonen?
@@ -65,7 +65,7 @@ byte bumpPin1 = 3; // Vorne
 // Sharp Infrarotsensoren
 int ir_entf = 209;  // 20cm = ca. 333 (David @Home) 209 (Schule)
 byte ir1 = 14; // Sharp IR Entfernungssensor vorne
-byte ir2 = 15; // Sharp IR Entfernungssensor hinten (UNUSED)
+byte ir2 = 15; // Sharp IR Entfernungssensor links
 int ir_delay = 50; // Wartezeit zwischen den Ausleseversuchen des IRSensors
 
 // Zeitrelevant
@@ -83,11 +83,11 @@ int gyro_delay = 50; // Wartezeit zwischen den Ausleseversuchen des Gyroskops
 // Funktionsprototypen
 
 // Sensorfunktionen
-int ir_sensor(); // Input: Nichts | Rückgabe: Integer
+int ir_sensor(bool); // Input: Sensornummer | Rückgabe: Integer
 bool gyro_sensor(signed short int angle, int grad); // Input: Aktueller Winkel, zu Drehende Gradzahl | Rückgabe: Bool
 
 // Drehfunktion
-void turn(int); // Input: Gradzahl | Rückgabe: Nichts
+void turn(int, bool); // Input: Gradzahl, Korrigieren o. Drehung | Rückgabe: Nichts
 
 // Wartefunktion (Ersatz für delay();)
 void wartezeit(unsigned short); // Input: Dauer | Rückgabe: Nichts
@@ -117,11 +117,6 @@ void setup()
   pinMode (ir1, INPUT); // Sharp IR Entfernungssensor vorne
   pinMode (ir2, INPUT); // Sharp IR Entfernungssensor hinten
 
-  // Interrupt UNUSED
-
-  //attachInterrupt(digitalPinToInterrupt(bumpPin1), bump_ISR, FALLING); // Interrupt1 wenn HIGH -> LOW vom Bumper1
-
-
   // GYROSKOP
   Serial.println("##GYRO...##"); // DEBUG ONLY
   Wire.begin(); // Initialisierung der Wire Bibliothek
@@ -135,6 +130,8 @@ void setup()
 void loop()
 {
   int sensorvar = 0;
+  int leftvar = 0;
+  int motorvar = 210;
 
   // Motorengeschwindigkeit festlegen
   analogWrite(GSM1, 160); // Rechter Motor (160)
@@ -150,12 +147,23 @@ void loop()
   digitalWrite(in4, HIGH);
 
   while (sensorvar == 0) {
-    sensorvar = ir_sensor();
+    sensorvar = ir_sensor(0); // Sensor 0 = Vorne
     // Checke entfernung links (kleiner als "gegenfahren und rückwärts" aber größer gegenfahren
+    leftvar = ir_sensor(1);
     // wenn entfernung links zu klein
+    while (leftvar == 1) {
       // dann drehe motorgeschwindgkeit links hoch
+      motorvar = motorvar + 3;
+      if (motorvar > 255) {
+        motorvar = 255;
+      } // Damit der Maximalwert 255 ist.
+      analogWrite(GSM2, motorvar); // Linker Motor (210)
+      wartezeit(sec);
+      leftvar = 1;
+    }
     // wenn entfernung groß genug
-     // setze motorgeschw zurück
+    // setze motorgeschw zurück
+    analogWrite(GSM2, 210); // Linker Motor (210)
   }
   // Anhalten
   // Motor 1 aus
@@ -174,7 +182,7 @@ void loop()
       digitalWrite(16, HIGH); // LED Grün ein
       digitalWrite(17, LOW); // LED Rot aus
 
-      turn(180); // 90° ca sind45
+      turn(170, 0); // 90° -> 180,
 
       Serial.println("MAX - 90 grad gedreht"); // DEBUG ONLY
       gradcounter++; // Drehvariable auf 1 setzen (1 addieren)
@@ -187,7 +195,7 @@ void loop()
       digitalWrite(16, LOW); // LED Grün aus
       digitalWrite(17, HIGH); // LED Rot ein
 
-      turn(360); // 180° ca 90
+      turn(350, 0); // 180° -> 360
 
       Serial.println("MAX - 180 grad gedreht"); // DEBUG ONLY
       gradcounter--; // Drehvariable auf 0 setzen (1 subtrahieren)
@@ -202,114 +210,189 @@ void loop()
   }
 }
 // ######################## IR_Sensor ########################
-int ir_sensor() {
+int ir_sensor(bool sensornr) {
 
   int distanceV = 1; // Entfernung vorne
   distanceV = analogRead(ir1);
+  int distanceL = 1; // Entfernung links
+  distanceL = analogRead(ir2);
   int sumV = 0; // Summe der Entfernungen vorne
+  int sumL = 0; // Summe der Entfernungen links
   int repeat = 4; // Anzahl der Mehrfachauslesungen
   int repeat1 = 4; // 2. Anzahl der Mehrfachauslesungen
 
-  Serial.print("IR_SENS - INITIAL DV:"); // DEBUG ONLY
-  Serial.println(distanceV); // DEBUG ONLY
 
-  // Fehlereinlesungen umgehen
-  if ((distanceV == 0) || (distanceV == -1)) {
-    distanceV = 100;
-  }
-  // Mehrfachauslesung der Entfernung
-  for (int i = 0; i < repeat1; i++)
+  switch (sensornr)
   {
-    // Entfernung auslesen
-    distanceV = analogRead(ir1); // Entfernungswert des Sensors übergeben
-    sumV += distanceV; // Entfernungswert zur Summe addieren
-    //Serial.print("Wirklicher Wert? - "); // DEBUG ONLY
-    //Serial.println(sumV / i); // DEBUG ONLY
-    wartezeit(ir_delay);
-  }
-  sumV = sumV / repeat1; // Mittelwert ausrechnen
+    case 0:
 
-  //Entfernung < 20cm +- X? (Invertierte logik!)
-  if ((ir_entf - 50 < sumV) && (ir_entf + 50 > sumV))
-  {
-    sumV = 0; // Summe für nächste Berechnung zurücksetzen
-    distanceV = analogRead(ir1); // Entfernungswert des Sensors übergeben
-    // Mehrfachauslesung der Entfernung
-    for (int i = 0; i < repeat; i++)
-    {
-      distanceV = analogRead(ir1); // Entfernungswert des Sensors übergeben
-      sumV += distanceV; // Entfernungswert zur Summe addieren
-      Serial.print("MAX - Entfernung vorne - "); // DEBUG ONLY
-      Serial.println(sumV / i); // DEBUG ONLY
-      wartezeit(ir_delay);
-    }
-    sumV = sumV / repeat; // Mittelwert ausrechnen
+      Serial.print("IR_SENS - INITIAL DV:"); // DEBUG ONLY
+      Serial.println(distanceV); // DEBUG ONLY
 
-    Serial.print("MAX - Entfernung ERGEBNIS: "); // DEBUG ONLY
-    Serial.println(sumV); // DEBUG ONLY
+      // Fehlereinlesungen umgehen
+      if ((distanceV == 0) || (distanceV == -1)) {
+        distanceV = 100;
+      }
+      // Mehrfachauslesung der Entfernung
+      for (int i = 0; i < repeat1; i++)
+      {
+        // Entfernung auslesen
+        distanceV = analogRead(ir1); // Entfernungswert des Sensors übergeben
+        sumV += distanceV; // Entfernungswert zur Summe addieren
+        //Serial.print("Wirklicher Wert? - "); // DEBUG ONLY
+        //Serial.println(sumV / i); // DEBUG ONLY
+        wartezeit(ir_delay);
+      }
+      sumV = sumV / repeat1; // Mittelwert ausrechnen
 
-    // Wenn der Mittelwert kleiner als die ir_entf ist.. (Invertierte logik!)
-    if (sumV > ir_entf)
-    {
-      Serial.println("MAX - Ergebnis > ir_entf"); // DEBUG ONLY
-      return 1;
-    }
-  }
-  else {
-    return 0;
+      //Entfernung < 20cm +- X? (Invertierte logik!)
+      if ((ir_entf - 50 < sumV) && (ir_entf + 50 > sumV))
+      {
+        sumV = 0; // Summe für nächste Berechnung zurücksetzen
+        distanceV = analogRead(ir1); // Entfernungswert des Sensors übergeben
+        // Mehrfachauslesung der Entfernung
+        for (int i = 0; i < repeat; i++)
+        {
+          distanceV = analogRead(ir1); // Entfernungswert des Sensors übergeben
+          sumV += distanceV; // Entfernungswert zur Summe addieren
+          Serial.print("MAX - Entfernung vorne - "); // DEBUG ONLY
+          Serial.println(sumV / i); // DEBUG ONLY
+          wartezeit(ir_delay);
+        }
+        sumV = sumV / repeat; // Mittelwert ausrechnen
+
+        Serial.print("MAX - Entfernung ERGEBNIS: "); // DEBUG ONLY
+        Serial.println(sumV); // DEBUG ONLY
+
+        // Wenn der Mittelwert kleiner als die ir_entf ist.. (Invertierte logik!)
+        if (sumV > ir_entf)
+        {
+          Serial.println("MAX - Ergebnis > ir_entf"); // DEBUG ONLY
+          return 1;
+        }
+      }
+      else {
+        return 0;
+      }
+      break;
+    case 1:
+      // SENSOR LINKS
+      Serial.print("IR_SENS - INITIAL DL:"); // DEBUG ONLY
+      Serial.println(distanceL); // DEBUG ONLY
+
+      // Fehlereinlesungen umgehen
+      if ((distanceL == 0) || (distanceL == -1)) {
+        distanceL = 100;
+      }
+      // Mehrfachauslesung der Entfernung
+      for (int i = 0; i < repeat1; i++)
+      {
+        // Entfernung auslesen
+        distanceL = analogRead(ir2); // Entfernungswert des Sensors übergeben
+        sumL += distanceL; // Entfernungswert zur Summe addieren
+        //Serial.print("Wirklicher Wert? - "); // DEBUG ONLY
+        //Serial.println(sumL / i); // DEBUG ONLY
+        wartezeit(ir_delay);
+      }
+      sumL = sumL / repeat1; // Mittelwert ausrechnen
+
+      //Entfernung < 20cm +- X? (Invertierte logik!)
+      if ((ir_entf - 50 < sumL) && (ir_entf + 50 > sumL))
+      {
+        sumL = 0; // Summe für nächste Berechnung zurücksetzen
+        distanceL = analogRead(ir2); // Entfernungswert des Sensors übergeben
+        // Mehrfachauslesung der Entfernung
+        for (int i = 0; i < repeat; i++)
+        {
+          distanceL = analogRead(ir2); // Entfernungswert des Sensors übergeben
+          sumL += distanceL; // Entfernungswert zur Summe addieren
+          Serial.print("MAX - Entfernung links - "); // DEBUG ONLY
+          Serial.println(sumL / i); // DEBUG ONLY
+          wartezeit(ir_delay);
+        }
+        sumL = sumL / repeat; // Mittelwert ausrechnen
+
+        Serial.print("MAX - Entfernung L ERGEBNIS: "); // DEBUG ONLY
+        Serial.println(sumL); // DEBUG ONLY
+
+        // Wenn der Mittelwert kleiner als die ir_entf ist.. (Invertierte logik!)
+        if (sumL > ir_entf)
+        {
+          Serial.println("MAX - Ergebnis > ir_entf"); // DEBUG ONLY
+          return 1;
+        }
+      }
+      else {
+        return 0;
+      }
+      break;
+    default:
+      // not happening
+      break;
   }
 }
 // ######################## TURN ########################
-void turn(int grad) {
+void turn(int grad, bool korrig) {
   mpu6050.update(); // Werte des Sensors aktualisieren
   signed short int cur_angle = mpu6050.getAngleZ(); // Winkel beim Starten der Funktion
   Serial.print("TURN INITIAL -");  Serial.println(cur_angle); // DEBUG ONLY
+  switch (korrig)
+  {
+    case 0:
+      // Motor 1 rückwärts
+      digitalWrite(in1, LOW);
+      digitalWrite(in2, HIGH);
+      // Motor 2 rückwärts
+      digitalWrite(in3, HIGH);
+      digitalWrite(in4, LOW);
 
+      wartezeit(sec);
 
-  // Motor 1 rückwärts
-  digitalWrite(in1, LOW);
-  digitalWrite(in2, HIGH);
-  // Motor 2 rückwärts
-  digitalWrite(in3, HIGH);
-  digitalWrite(in4, LOW);
+      // Motor 1 aus
+      digitalWrite(in1, LOW);
+      digitalWrite(in2, LOW);
+      // Motor 2 aus
+      digitalWrite(in3, LOW);
+      digitalWrite(in4, LOW);
 
-wartezeit(sec);
+      // Rechtsdrehung
+      // Motor 1 rückwärts
+      digitalWrite(in1, LOW);
+      digitalWrite(in2, HIGH);
+      // Motor 2 vorwärts
+      digitalWrite(in3, LOW);
+      digitalWrite(in4, HIGH);
 
-  // Motor 1 aus
-  digitalWrite(in1, LOW);
-  digitalWrite(in2, LOW);
-  // Motor 2 aus
-  digitalWrite(in3, LOW);
-  digitalWrite(in4, LOW);
-
-  // Rechtsdrehung
-  // Motor 1 rückwärts
-  digitalWrite(in1, LOW);
-  digitalWrite(in2, HIGH);
-  // Motor 2 vorwärts
-  digitalWrite(in3, LOW);
-  digitalWrite(in4, HIGH);
-
-  while (gyro == 0) {
-    gyro = gyro_sensor(cur_angle, grad);
+      while (gyro == 0) {
+        gyro = gyro_sensor(cur_angle, grad);
+      }
+      // Anhalten
+      // Motor 1 aus
+      digitalWrite(in1, LOW);
+      digitalWrite(in2, LOW);
+      // Motor 2 aus
+      digitalWrite(in3, LOW);
+      digitalWrite(in4, LOW);
+      wartezeit(500);
+      break;
+    case 1:
+      // Korrigieren!
+      break;
+    default:
+      // Not happening
+      break;
   }
-  // Anhalten
-  // Motor 1 aus
-  digitalWrite(in1, LOW);
-  digitalWrite(in2, LOW);
-  // Motor 2 aus
-  digitalWrite(in3, LOW);
-  digitalWrite(in4, LOW);
-  wartezeit(500);
   gyro = 0;
 }
 // ######################## GYRO ########################
+// Überprüfe ob Drehung vollendet
 bool gyro_sensor(signed short int angle, int grad) {
   // Angle = Winkel beim Starten der Funktion
   // Grad = Zu erreichender Winkel(Gradzahl)
   signed short int cur_angle = angle; // Aktueller Wert
   Serial.print("GYRO INIT CURANGLE -");  Serial.println(cur_angle); // DEBUG ONLY
   Serial.print("GYRO INIT ANGLE -");  Serial.println(angle); // DEBUG ONLY
+
   // Warte, bis das Gyroskop eine vollständige X° Drehung erfasst hat (<-180)
   while (cur_angle >= angle - grad) {
     mpu6050.update(); // Werte des Sensors aktualisieren
@@ -318,9 +401,6 @@ bool gyro_sensor(signed short int angle, int grad) {
     Serial.print("GYRO -");  Serial.println(cur_angle); // DEBUG ONLY
   }
 
-  // if (cur_angle <= angle - grad) {
-  //   return 0; // Fehler bei Drehung
-  // }
   Serial.print(grad); // DEBUG ONLY
   Serial.println("° Drehung abgeschlossen"); // DEBUG ONLY
   return 1; // Drehung abgeschlossen
