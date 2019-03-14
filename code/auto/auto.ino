@@ -58,6 +58,9 @@ byte GSM2 = 5;
 byte in3 = 7;
 byte in4 = 6;
 
+int motorvarR = 160; // Rechter Motor (160)
+int motorvarL = 207; // Linker Motor (210)
+
 // Endschalter / Bumper (Failsafe, im Normalfall nicht genutzt)
 byte bumpPin1 = 3; // Vorne
 //byte bumpPin2 = 2; // Hinten // UNUSED
@@ -131,8 +134,6 @@ void loop()
 {
   int sensorvar = 0;
   int leftvar = 0;
-  int motorvarR = 160; // Rechter Motor (160)
-  int motorvarL = 207; // Linker Motor (210)
 
   // Motorengeschwindigkeit festlegen
   analogWrite(GSM1, motorvarR); // Rechter Motor
@@ -157,7 +158,7 @@ void loop()
 
 
       // Korrigieren
-      turn(10, 1); // 10°
+      turn(20, 1); // 10°
 
       /* Während der Fahrt korrigieren
         // dann drehe Motorgeschwindgkeit links hoch
@@ -394,14 +395,18 @@ void turn(int grad, bool korrig) {
       wartezeit(500);
       break;
     case 1:
-      
-       // Motor 1 aus
+
+
+      // LINKS SENSOR
+      // Motor 1 aus
       digitalWrite(in1, LOW);
       digitalWrite(in2, LOW);
       // Motor 2 aus
       digitalWrite(in3, LOW);
       digitalWrite(in4, LOW);
-
+      // Motorengeschwindigkeit festlegen
+      analogWrite(GSM1, motorvarR); // Rechter Motor
+      analogWrite(GSM2, motorvarL); // Linker Motor
       // Rechtsdrehung
       // Motor 1 rückwärts
       digitalWrite(in1, LOW);
@@ -420,7 +425,7 @@ void turn(int grad, bool korrig) {
       // Motor 2 aus
       digitalWrite(in3, LOW);
       digitalWrite(in4, LOW);
-      wartezeit(500);
+      //wartezeit(500);
       break;
     default:
       // Not happening
