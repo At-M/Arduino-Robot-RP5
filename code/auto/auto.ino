@@ -8,8 +8,7 @@
    Feb-Mar 2019
 
    TODO:
-  Interrupt ändern / entfernen
-  do drive vorwärts while wert von IR nicht doof
+   
   Hinderniserkennung beim Rückwärtsfahren?
   Codecleanup
   Langsam stoppen um Getriebe/Motor zu schonen?
@@ -201,12 +200,8 @@ void loop()
       // keine Reaktion
       break;
   }
-
-
-
-
-
 }
+// ######################## IR_Sensor ########################
 int ir_sensor() {
 
   int distanceV = 1; // Entfernung vorne
@@ -217,8 +212,6 @@ int ir_sensor() {
 
   Serial.print("IR_SENS - INITIAL DV:"); // DEBUG ONLY
   Serial.println(distanceV); // DEBUG ONLY
-
-
 
   // Fehlereinlesungen umgehen
   if ((distanceV == 0) || (distanceV == -1)) {
@@ -266,7 +259,7 @@ int ir_sensor() {
     return 0;
   }
 }
-
+// ######################## TURN ########################
 void turn(int grad) {
   mpu6050.update(); // Werte des Sensors aktualisieren
   signed short int cur_angle = mpu6050.getAngleZ(); // Winkel beim Starten der Funktion
@@ -310,6 +303,7 @@ wartezeit(sec);
   wartezeit(500);
   gyro = 0;
 }
+// ######################## GYRO ########################
 bool gyro_sensor(signed short int angle, int grad) {
   // Angle = Winkel beim Starten der Funktion
   // Grad = Zu erreichender Winkel(Gradzahl)
@@ -331,6 +325,7 @@ bool gyro_sensor(signed short int angle, int grad) {
   Serial.println("° Drehung abgeschlossen"); // DEBUG ONLY
   return 1; // Drehung abgeschlossen
 }
+// ######################## WARTEZEIT ########################
 // Ersatz für delay() mithilfe millis()
 void wartezeit(unsigned short dauer) {
   unsigned short currentMillis = 0; // Aktueller Zeitpunkt
