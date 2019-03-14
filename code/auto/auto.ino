@@ -170,7 +170,7 @@ void loop()
       digitalWrite(16, HIGH); // LED Grün ein
       digitalWrite(17, LOW); // LED Rot aus
 
-      turn(90);
+      turn(180); // 90° ca sind45
 
       Serial.println("MAX - 90 grad gedreht"); // DEBUG ONLY
       gradcounter++; // Drehvariable auf 1 setzen (1 addieren)
@@ -183,7 +183,7 @@ void loop()
       digitalWrite(16, LOW); // LED Grün aus
       digitalWrite(17, HIGH); // LED Rot ein
 
-      turn(180);
+      turn(360); // 180° ca 90
 
       Serial.println("MAX - 180 grad gedreht"); // DEBUG ONLY
       gradcounter--; // Drehvariable auf 0 setzen (1 subtrahieren)
