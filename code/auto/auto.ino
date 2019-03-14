@@ -139,7 +139,7 @@ void loop()
 
   // Motorengeschwindigkeit festlegen
   analogWrite(GSM1, 160); // Rechter Motor (160)
-  analogWrite(GSM2, 210); // Linker Motor (240)
+  analogWrite(GSM2, 210); // Linker Motor (210)
 
   Serial.println("MOVE - INITIAL START"); // DEBUG ONLY
 
@@ -267,6 +267,23 @@ void turn(int grad) {
   signed short int cur_angle = mpu6050.getAngleZ(); // Winkel beim Starten der Funktion
   Serial.print("TURN INITIAL -");  Serial.println(cur_angle); // DEBUG ONLY
 
+
+  // Motor 1 rückwärts
+  digitalWrite(in1, LOW);
+  digitalWrite(in2, HIGH);
+  // Motor 2 rückwärts
+  digitalWrite(in3, HIGH);
+  digitalWrite(in4, LOW);
+
+wartezeit(sec);
+
+  // Motor 1 aus
+  digitalWrite(in1, LOW);
+  digitalWrite(in2, LOW);
+  // Motor 2 aus
+  digitalWrite(in3, LOW);
+  digitalWrite(in4, LOW);
+
   // Rechtsdrehung
   // Motor 1 rückwärts
   digitalWrite(in1, LOW);
@@ -285,6 +302,7 @@ void turn(int grad) {
   // Motor 2 aus
   digitalWrite(in3, LOW);
   digitalWrite(in4, LOW);
+  wartezeit(500);
   gyro = 0;
 }
 bool gyro_sensor(signed short int angle, int grad) {
