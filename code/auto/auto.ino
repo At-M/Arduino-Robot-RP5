@@ -69,6 +69,7 @@ byte bumpPin1 = 3; // Vorne
 int ir_entf = 209;  // 20cm = ca. 333 (David @Home) 209 (Schule)
 byte ir1 = 14; // Sharp IR Entfernungssensor vorne
 byte ir2 = 15; // Sharp IR Entfernungssensor links
+byte ir3 = 17; // Sharp IR Entfernungssensor rechts
 int ir_delay = 50; // Wartezeit zwischen den Ausleseversuchen des IRSensors
 
 // Zeitrelevant
@@ -94,6 +95,11 @@ void turn(int, bool); // Input: Gradzahl, Korrigieren o. Drehung | Rückgabe: Ni
 
 // Wartefunktion (Ersatz für delay();)
 void wartezeit(unsigned short); // Input: Dauer | Rückgabe: Nichts
+
+// DebugLEDS
+//ROT: A3 (aktuell 17, soll 12)
+//GRÜN: A2 (aktuell 16, soll 11)
+
 
 
 // ######################## SETUP ########################
@@ -134,6 +140,7 @@ void loop()
 {
   int sensorvar = 0;
   int leftvar = 0;
+  int rightvar = 0;
 
   // Motorengeschwindigkeit festlegen
   analogWrite(GSM1, motorvarR); // Rechter Motor
@@ -150,12 +157,15 @@ void loop()
 
   while (sensorvar == 0) {
     sensorvar = ir_sensor(0); // Sensor 0 = Vorne
-    sensorvar = bumpers(); // Taster vorne checken
+    Serial.print("SENSORVAR: ");
+    Serial.println(sensorvar);
+
+    //sensorvar1 = bumpers(); // Taster vorne checken
     // Checke entfernung links (kleiner als "gegenfahren und rückwärts" aber größer gegenfahren
     leftvar = ir_sensor(1);
     // wenn entfernung links zu klein
     while (leftvar == 1) {
-      digitalWrite(17, HIGH); // LED Rot an
+      digitalWrite(12, HIGH); // LED Rot an
 
 
       // Korrigieren
@@ -178,7 +188,20 @@ void loop()
 
       */
       leftvar = 0;
-      digitalWrite(17, LOW); // LED Rot aus
+      digitalWrite(12, LOW); // LED Rot aus
+    }
+    // Checke entfernung links (kleiner als "gegenfahren und rückwärts" aber größer gegenfahren
+    rightvar = ir_sensor(2);
+    // wenn entfernung links zu klein
+
+    while (rightvar == 1) {
+      digitalWrite(11, HIGH); // LED Rot an
+
+
+      // Korrigieren
+      turn(-20, 1); // 10°
+      rightvar = 0;
+      digitalWrite(11, LOW); // LED Rot aus
     }
     // wenn entfernung groß genug
     // setze motorgeschw zurück
@@ -199,28 +222,28 @@ void loop()
   switch (gradcounter) {
     case 0:
       // 90 grad drehen
-      digitalWrite(16, HIGH); // LED Grün ein
-      digitalWrite(17, LOW); // LED Rot aus
+      digitalWrite(11, HIGH); // LED Grün ein
+      digitalWrite(12, LOW); // LED Rot aus
 
       turn(170, 0); // 90° -> 180,
 
       Serial.println("MAX - 90 grad gedreht"); // DEBUG ONLY
       gradcounter++; // Drehvariable auf 1 setzen (1 addieren)
-      digitalWrite(16, LOW); //LED Grün aus
+      digitalWrite(11, LOW); //LED Grün aus
       Serial.println("Gradcounter nachher90:"); // DEBUG ONLY
       Serial.println(gradcounter); // DEBUG ONLY
       break;
     case 1:
       // 180 Grad drehen
-      digitalWrite(16, LOW); // LED Grün aus
-      digitalWrite(17, HIGH); // LED Rot ein
+      digitalWrite(11, LOW); // LED Grün aus
+      digitalWrite(12, HIGH); // LED Rot ein
 
       turn(320, 0); // 180° -> 360-340
 
       Serial.println("MAX - 180 grad gedreht"); // DEBUG ONLY
       gradcounter--; // Drehvariable auf 0 setzen (1 subtrahieren)
-      digitalWrite(16, LOW); // OK LED ein
-      digitalWrite(17, LOW); // Interrupt LED aus
+      digitalWrite(11, LOW); // OK LED ein
+      digitalWrite(12, LOW); // Interrupt LED aus
       Serial.println("Gradcounter nachher180:"); // DEBUG ONLY
       Serial.println(gradcounter); // DEBUG ONLY
       break;
@@ -236,8 +259,11 @@ int ir_sensor(bool sensornr) {
   distanceV = analogRead(ir1);
   int distanceL = 1; // Entfernung links
   distanceL = analogRead(ir2);
+  int distanceR = 1; // Entfernung rechts
+  distanceR = analogRead(ir3);
   int sumV = 0; // Summe der Entfernungen vorne
   int sumL = 0; // Summe der Entfernungen links
+  int sumR = 0; // Summe der Entfernungen rechts
   int repeat = 4; // Anzahl der Mehrfachauslesungen
   int repeat1 = 4; // 2. Anzahl der Mehrfachauslesungen
 
@@ -292,6 +318,7 @@ int ir_sensor(bool sensornr) {
         }
       }
       else {
+        Serial.println("MAX - ENTF OK"); // DEBUG ONLY
         return 0;
       }
       break;
@@ -338,7 +365,59 @@ int ir_sensor(bool sensornr) {
         // Wenn der Mittelwert kleiner als die ir_entf ist.. (Invertierte logik!)
         if (sumL > ir_entf)
         {
-          Serial.println("MAX - Ergebnis > ir_entf"); // DEBUG ONLY
+          Serial.println("MAX - Ergebnis links > ir_entf"); // DEBUG ONLY
+          return 1;
+        }
+      }
+      else {
+        return 0;
+      }
+      break;
+    // Rechts
+    case 2:
+      // SENSOR RECHTS
+      Serial.print("IR_SENS - INITIAL DR:"); // DEBUG ONLY
+      Serial.println(distanceR); // DEBUG ONLY
+
+      // Fehlereinlesungen umgehen
+      if ((distanceR == 0) || (distanceR == -1)) {
+        distanceR = 100;
+      }
+      // Mehrfachauslesung der Entfernung
+      for (int i = 0; i < repeat1; i++)
+      {
+        // Entfernung auslesen
+        distanceR = analogRead(ir3); // Entfernungswert des Sensors übergeben
+        sumR += distanceR; // Entfernungswert zur Summe addieren
+        //Serial.print("Wirklicher Wert? - "); // DEBUG ONLY
+        //Serial.println(sumR / i); // DEBUG ONLY
+        wartezeit(ir_delay);
+      }
+      sumR = sumR / repeat1; // Mittelwert ausrechnen
+
+      //Entfernung < 20cm +- X? (Invertierte logik!)
+      if ((ir_entf - 50 < sumR) && (ir_entf + 50 > sumR))
+      {
+        sumR = 0; // Summe für nächste Berechnung zurücksetzen
+        distanceR = analogRead(ir3); // Entfernungswert des Sensors übergeben
+        // Mehrfachauslesung der Entfernung
+        for (int i = 0; i < repeat; i++)
+        {
+          distanceR = analogRead(ir3); // Entfernungswert des Sensors übergeben
+          sumR += distanceR; // Entfernungswert zur Summe addieren
+          Serial.print("MAX - Entfernung Rechts - "); // DEBUG ONLY
+          Serial.println(sumR / i); // DEBUG ONLY
+          wartezeit(ir_delay);
+        }
+        sumR = sumR / repeat; // Mittelwert ausrechnen
+
+        Serial.print("MAX - Entfernung R ERGEBNIS: "); // DEBUG ONLY
+        Serial.println(sumR); // DEBUG ONLY
+
+        // Wenn der Mittelwert kleiner als die ir_entf ist.. (Invertierte logik!)
+        if (sumR > ir_entf)
+        {
+          Serial.println("MAX - Rechts Ergebnis > ir_entf"); // DEBUG ONLY
           return 1;
         }
       }
