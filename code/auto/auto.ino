@@ -66,7 +66,8 @@ byte bumpPin1 = 3; // Vorne
 //byte bumpPin2 = 2; // Hinten // UNUSED
 
 // Sharp Infrarotsensoren
-int ir_entf = 170;  // 209 (Schule)
+int ir_entf = 209;  // 209 (Schule)
+int ir_entf2 = 150; // 170 war eben
 byte ir1 = 14; // Sharp IR Entfernungssensor vorne
 byte ir2 = 15; // Sharp IR Entfernungssensor links
 byte ir3 = 17; // Sharp IR Entfernungssensor rechts
@@ -87,7 +88,7 @@ int gyro_delay = 50; // Wartezeit zwischen den Ausleseversuchen des Gyroskops
 // Funktionsprototypen
 
 // Sensorfunktionen
-int ir_sensor(bool); // Input: Sensornummer | Rückgabe: Integer
+int ir_sensor(int); // Input: Sensornummer | Rückgabe: Integer
 bool gyro_sensor(signed short int angle, int grad); // Input: Aktueller Winkel, zu Drehende Gradzahl | Rückgabe: Bool
 
 // Drehfunktion
@@ -167,42 +168,20 @@ void loop()
     // wenn entfernung links zu klein
     while (leftvar == 1) {
       digitalWrite(12, HIGH); // LED Rot an
-
-
       // Korrigieren
       turn(20, 1); // 20°
-
-      /* Während der Fahrt korrigieren
-        // dann drehe Motorgeschwindgkeit links hoch
-        motorvarL = motorvarL + 5;
-        motorvarR = motorvarR - 5;
-        if (motorvarL > 255) {
-        motorvarL = 255;
-        } // Damit der Maximalwert 255 ist.
-        if (motorvarR < 0) {
-        motorvarR = 0;
-        } // Damit der Minimalwert 0 ist.
-        analogWrite(GSM1, motorvarR); // Rechter Motor
-        analogWrite(GSM2, motorvarL); // Linker Motor
-        wartezeit(500);
-
-
-      */
       leftvar = 0;
       digitalWrite(12, LOW); // LED Rot aus
     }
-    // Checke entfernung links (kleiner als "gegenfahren und rückwärts" aber größer gegenfahren
+    // Checke entfernung rechts (kleiner als "gegenfahren und rückwärts" aber größer gegenfahren
     rightvar = ir_sensor(2);
-    // wenn entfernung links zu klein
-
+    // wenn entfernung rechts zu klein
     while (rightvar == 1) {
-      digitalWrite(11, HIGH); // LED Rot an
-
-
+      digitalWrite(11, HIGH); // LED Grün an
       // Korrigieren
       turn(-20, 2); // -20°
       rightvar = 0;
-      digitalWrite(11, LOW); // LED Rot aus
+      digitalWrite(11, LOW); // LED Grün aus
     }
     // wenn entfernung groß genug
     // setze motorgeschw zurück
@@ -254,7 +233,7 @@ void loop()
   }
 }
 // ######################## IR_Sensor ########################
-int ir_sensor(bool sensornr) {
+int ir_sensor(int sensornr) {
 
   int distanceV = 1; // Entfernung vorne
   distanceV = analogRead(ir1);
@@ -345,7 +324,7 @@ int ir_sensor(bool sensornr) {
       sumL = sumL / repeat1; // Mittelwert ausrechnen
 
       //Entfernung < 20cm +- X? (Invertierte logik!)
-      if ((ir_entf - 50 < sumL) && (ir_entf + 50 > sumL))
+      if ((ir_entf2 - 50 < sumL) && (ir_entf2 + 50 > sumL))
       {
         sumL = 0; // Summe für nächste Berechnung zurücksetzen
         distanceL = analogRead(ir2); // Entfernungswert des Sensors übergeben
@@ -364,9 +343,9 @@ int ir_sensor(bool sensornr) {
         Serial.println(sumL); // DEBUG ONLY
 
         // Wenn der Mittelwert kleiner als die ir_entf ist.. (Invertierte logik!)
-        if (sumL > ir_entf)
+        if (sumL > ir_entf2)
         {
-          Serial.println("MAX - Ergebnis links > ir_entf"); // DEBUG ONLY
+          Serial.println("MAX - Ergebnis links > ir_entf2"); // DEBUG ONLY
           return 1;
         }
       }
@@ -397,7 +376,7 @@ int ir_sensor(bool sensornr) {
       sumR = sumR / repeat1; // Mittelwert ausrechnen
 
       //Entfernung < 20cm +- X? (Invertierte logik!)
-      if ((ir_entf - 50 < sumR) && (ir_entf + 50 > sumR))
+      if ((ir_entf2 - 50 < sumR) && (ir_entf2 + 50 > sumR))
       {
         sumR = 0; // Summe für nächste Berechnung zurücksetzen
         distanceR = analogRead(ir3); // Entfernungswert des Sensors übergeben
@@ -416,9 +395,9 @@ int ir_sensor(bool sensornr) {
         Serial.println(sumR); // DEBUG ONLY
 
         // Wenn der Mittelwert kleiner als die ir_entf ist.. (Invertierte logik!)
-        if (sumR > ir_entf)
+        if (sumR > ir_entf2)
         {
-          Serial.println("MAX - Rechts Ergebnis > ir_entf"); // DEBUG ONLY
+          Serial.println("MAX - Rechts Ergebnis > ir_entf2"); // DEBUG ONLY
           return 1;
         }
       }
@@ -525,8 +504,6 @@ void turn(int grad, bool korrig) {
       digitalWrite(in4, HIGH);
       break;
     case 2:
-
-
       // RECHTS SENSOR
       // Motor 1 aus
       digitalWrite(in1, LOW);
