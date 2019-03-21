@@ -98,8 +98,8 @@ void turn(int, bool); // Input: Gradzahl, Korrigieren o. Drehung | Rückgabe: Ni
 void wartezeit(unsigned short); // Input: Dauer | Rückgabe: Nichts
 
 // DebugLEDS
-//ROT: A3 (aktuell 17, soll 12)
-//GRÜN: A2 (aktuell 16, soll 11)
+//ROT: 12
+//GRÜN: 11
 
 
 
@@ -183,7 +183,8 @@ void loop()
     }
     // wenn entfernung groß genug
     // setze motorgeschw zurück
-    analogWrite(GSM2, 210); // Linker Motor (210)
+    analogWrite(GSM1, motorvarR); // Rechter Motor
+    analogWrite(GSM2, motorvarL); // Linker Motor
 
   }
   // Anhalten
@@ -591,10 +592,9 @@ else{
 void wartezeit(unsigned short dauer) {
   unsigned short currentMillis = 0; // Aktueller Zeitpunkt
   unsigned short startMillis = (unsigned short)millis(); // Startpunkt der Wartefunktion in ms
-  //Serial.print("WAIT - "); // DEBUG ONLY
-  //Serial.print(dauer); // DEBUG ONLY
-  do {
+
+  // Führe solange aus, wie die Dauer noch nicht verstrichen ist
+  while (currentMillis - startMillis <= dauer){
     currentMillis = (unsigned short)millis(); // Aktueller Zeitpunkt in ms
-  } while (currentMillis - startMillis <= dauer); // Führe oberes aus, bis die Dauer verstrichen ist
-  //Serial.println(" ...DONE!"); // DEBUG ONLY
+  } 
 }
