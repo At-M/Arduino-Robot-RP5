@@ -59,7 +59,7 @@ byte in3 = 7;
 byte in4 = 6;
 
 int motorvarR = 160; // Rechter Motor (160)
-int motorvarL = 207; // Linker Motor (210)
+int motorvarL = 215; // Linker Motor (210/207)
 
 // Endschalter / Bumper (Failsafe, im Normalfall nicht genutzt)
 byte bumpPin1 = 3; // Vorne
@@ -468,6 +468,7 @@ void turn(int grad, bool korrig) {
       break;
     case 1:
       // LINKS SENSOR
+      Serial.println("Turn Linksssensor");
       // Motor 1 aus
       digitalWrite(in1, LOW);
       digitalWrite(in2, LOW);
@@ -505,6 +506,7 @@ void turn(int grad, bool korrig) {
       break;
     case 2:
       // RECHTS SENSOR
+      Serial.println("Turn Rechtsssensor");
       // Motor 1 aus
       digitalWrite(in1, LOW);
       digitalWrite(in2, LOW);
@@ -516,9 +518,11 @@ void turn(int grad, bool korrig) {
       analogWrite(GSM2, motorvarL); // Linker Motor
       // Linksdrehung
       // Motor 1 vorwärts
+      Serial.println("Mot1 Vorwärts");
       digitalWrite(in1, HIGH);
       digitalWrite(in2, LOW);
       // Motor 2 rückwärts
+      Serial.println("Mot2 Rückwärts");
       digitalWrite(in3, HIGH);
       digitalWrite(in4, LOW);
 
@@ -555,6 +559,20 @@ bool gyro_sensor(signed short int angle, int grad) {
   Serial.print("GYRO INIT CURANGLE -");  Serial.println(cur_angle); // DEBUG ONLY
   Serial.print("GYRO INIT ANGLE -");  Serial.println(angle); // DEBUG ONLY
 
+if(grad<0){
+  // Linksdrehung
+  Serial.print("GYRO LINKSDREHUNG"); // DEBUG ONLY
+  // Warte, bis das Gyroskop eine vollständige X° Drehung erfasst hat (<-180)
+  while (cur_angle <= angle + grad) {
+    mpu6050.update(); // Werte des Sensors aktualisieren
+    cur_angle = mpu6050.getAngleZ(); // Werte der Z-Achse (Drehwinkel) übergeben
+    wartezeit(gyro_delay);
+    Serial.print("GYRO -");  Serial.println(cur_angle); // DEBUG ONLY
+  }
+}
+else{
+  // Rechtsdrehung
+  Serial.print("GYRO RECHTSDREHUNG"); // DEBUG ONLY
   // Warte, bis das Gyroskop eine vollständige X° Drehung erfasst hat (<-180)
   while (cur_angle >= angle - grad) {
     mpu6050.update(); // Werte des Sensors aktualisieren
@@ -562,6 +580,9 @@ bool gyro_sensor(signed short int angle, int grad) {
     wartezeit(gyro_delay);
     Serial.print("GYRO -");  Serial.println(cur_angle); // DEBUG ONLY
   }
+}
+
+  
 
   Serial.print(grad); // DEBUG ONLY
   Serial.println("° Drehung abgeschlossen"); // DEBUG ONLY
