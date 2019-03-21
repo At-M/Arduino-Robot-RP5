@@ -66,7 +66,7 @@ byte bumpPin1 = 3; // Vorne
 //byte bumpPin2 = 2; // Hinten // UNUSED
 
 // Sharp Infrarotsensoren
-int ir_entf = 209;  // 20cm = ca. 333 (David @Home) 209 (Schule)
+int ir_entf = 170;  // 209 (Schule)
 byte ir1 = 14; // Sharp IR Entfernungssensor vorne
 byte ir2 = 15; // Sharp IR Entfernungssensor links
 byte ir3 = 17; // Sharp IR Entfernungssensor rechts
@@ -124,7 +124,8 @@ void setup()
   // pinMode(infraR1, INPUT); // Quick-Infrarot 1
 
   pinMode (ir1, INPUT); // Sharp IR Entfernungssensor vorne
-  pinMode (ir2, INPUT); // Sharp IR Entfernungssensor hinten
+  pinMode (ir2, INPUT); // Sharp IR Entfernungssensor links
+  pinMode (ir3, INPUT); // Sharp IR Entfernungssensor rechts
 
   // GYROSKOP
   Serial.println("##GYRO...##"); // DEBUG ONLY
@@ -169,7 +170,7 @@ void loop()
 
 
       // Korrigieren
-      turn(20, 1); // 10°
+      turn(20, 1); // 20°
 
       /* Während der Fahrt korrigieren
         // dann drehe Motorgeschwindgkeit links hoch
@@ -199,7 +200,7 @@ void loop()
 
 
       // Korrigieren
-      turn(-20, 1); // 10°
+      turn(-20, 2); // -20°
       rightvar = 0;
       digitalWrite(11, LOW); // LED Rot aus
     }
@@ -376,7 +377,7 @@ int ir_sensor(bool sensornr) {
     // Rechts
     case 2:
       // SENSOR RECHTS
-      Serial.print("IR_SENS - INITIAL DR:"); // DEBUG ONLY
+      Serial.print("IR_SENS - INITIAL DRECHTS:"); // DEBUG ONLY
       Serial.println(distanceR); // DEBUG ONLY
 
       // Fehlereinlesungen umgehen
@@ -487,8 +488,6 @@ void turn(int grad, bool korrig) {
       wartezeit(500);
       break;
     case 1:
-
-
       // LINKS SENSOR
       // Motor 1 aus
       digitalWrite(in1, LOW);
@@ -506,6 +505,45 @@ void turn(int grad, bool korrig) {
       // Motor 2 vorwärts
       digitalWrite(in3, LOW);
       digitalWrite(in4, HIGH);
+
+      while (gyro == 0) {
+        gyro = gyro_sensor(cur_angle, grad);
+      }
+      // Anhalten
+      // Motor 1 aus
+      digitalWrite(in1, LOW);
+      digitalWrite(in2, LOW);
+      // Motor 2 aus
+      digitalWrite(in3, LOW);
+      digitalWrite(in4, LOW);
+      //wartezeit(500);
+      // Motor 1 vorwärts
+      digitalWrite(in1, HIGH);
+      digitalWrite(in2, LOW);
+      // Motor 2 vorwärts
+      digitalWrite(in3, LOW);
+      digitalWrite(in4, HIGH);
+      break;
+    case 2:
+
+
+      // RECHTS SENSOR
+      // Motor 1 aus
+      digitalWrite(in1, LOW);
+      digitalWrite(in2, LOW);
+      // Motor 2 aus
+      digitalWrite(in3, LOW);
+      digitalWrite(in4, LOW);
+      // Motorengeschwindigkeit festlegen
+      analogWrite(GSM1, motorvarR); // Rechter Motor
+      analogWrite(GSM2, motorvarL); // Linker Motor
+      // Linksdrehung
+      // Motor 1 vorwärts
+      digitalWrite(in1, HIGH);
+      digitalWrite(in2, LOW);
+      // Motor 2 rückwärts
+      digitalWrite(in3, HIGH);
+      digitalWrite(in4, LOW);
 
       while (gyro == 0) {
         gyro = gyro_sensor(cur_angle, grad);
