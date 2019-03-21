@@ -121,9 +121,7 @@ void setup()
   pinMode(in4, OUTPUT); // GSM2 input2
 
   pinMode(bumpPin1, INPUT_PULLUP); // Bumper 1
-
-  // pinMode(infraR1, INPUT); // Quick-Infrarot 1
-
+  
   pinMode (ir1, INPUT); // Sharp IR Entfernungssensor vorne
   pinMode (ir2, INPUT); // Sharp IR Entfernungssensor links
   pinMode (ir3, INPUT); // Sharp IR Entfernungssensor rechts
