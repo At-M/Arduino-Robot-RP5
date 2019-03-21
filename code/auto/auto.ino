@@ -2,14 +2,16 @@
 #include <Wire.h> // Voraussetzung für Gyroskop 
 /*
    Autonomer Roboter "Gary"
-   Version 1.0
+   Version 1.1
    Made by:
    David Schmidt, Max Grüning, Steven Bolln, Pascal Harders
    Feb-Mar 2019
 
    TODO:
 
-  Hinderniserkennung beim Rückwärtsfahren?
+  BUMPER
+  FIX LEFT TURNING
+  
   Codecleanup
   Langsam stoppen um Getriebe/Motor zu schonen?
 
@@ -48,12 +50,12 @@
 
 */
 
-// Gleichstrommotor 1
+// Gleichstrommotor 1 (Rechts)
 byte GSM1 = 10;
 byte in1 = 9;
 byte in2 = 8;
 
-// Gleichstrommotor 2
+// Gleichstrommotor 2 (Links)
 byte GSM2 = 5;
 byte in3 = 7;
 byte in4 = 6;
@@ -121,7 +123,7 @@ void setup()
   pinMode(in4, OUTPUT); // GSM2 input2
 
   pinMode(bumpPin1, INPUT_PULLUP); // Bumper 1
-  
+
   pinMode (ir1, INPUT); // Sharp IR Entfernungssensor vorne
   pinMode (ir2, INPUT); // Sharp IR Entfernungssensor links
   pinMode (ir3, INPUT); // Sharp IR Entfernungssensor rechts
@@ -435,9 +437,7 @@ void turn(int grad, bool korrig) {
       // Motor 2 rückwärts
       digitalWrite(in3, HIGH);
       digitalWrite(in4, LOW);
-
       wartezeit(sec);
-
       // Motor 1 aus
       digitalWrite(in1, LOW);
       digitalWrite(in2, LOW);
@@ -495,7 +495,6 @@ void turn(int grad, bool korrig) {
       // Motor 2 aus
       digitalWrite(in3, LOW);
       digitalWrite(in4, LOW);
-      //wartezeit(500);
       // Motor 1 vorwärts
       digitalWrite(in1, HIGH);
       digitalWrite(in2, LOW);
@@ -515,6 +514,7 @@ void turn(int grad, bool korrig) {
       // Motorengeschwindigkeit festlegen
       analogWrite(GSM1, motorvarR); // Rechter Motor
       analogWrite(GSM2, motorvarL); // Linker Motor
+
       // Linksdrehung
       // Motor 1 vorwärts
       Serial.println("Mot1 Vorwärts");
@@ -535,7 +535,6 @@ void turn(int grad, bool korrig) {
       // Motor 2 aus
       digitalWrite(in3, LOW);
       digitalWrite(in4, LOW);
-      //wartezeit(500);
       // Motor 1 vorwärts
       digitalWrite(in1, HIGH);
       digitalWrite(in2, LOW);
@@ -558,31 +557,28 @@ bool gyro_sensor(signed short int angle, int grad) {
   Serial.print("GYRO INIT CURANGLE -");  Serial.println(cur_angle); // DEBUG ONLY
   Serial.print("GYRO INIT ANGLE -");  Serial.println(angle); // DEBUG ONLY
 
-if(grad<0){
-  // Linksdrehung
-  Serial.print("GYRO LINKSDREHUNG"); // DEBUG ONLY
-  // Warte, bis das Gyroskop eine vollständige X° Drehung erfasst hat (<-180)
-  while (cur_angle <= angle + grad) {
-    mpu6050.update(); // Werte des Sensors aktualisieren
-    cur_angle = mpu6050.getAngleZ(); // Werte der Z-Achse (Drehwinkel) übergeben
-    wartezeit(gyro_delay);
-    Serial.print("GYRO -");  Serial.println(cur_angle); // DEBUG ONLY
+  if (grad < 0) {
+    // Linksdrehung
+    Serial.print("GYRO LINKSDREHUNG"); // DEBUG ONLY
+    // Warte, bis das Gyroskop eine vollständige X° Drehung erfasst hat (<-180)
+    while (cur_angle <= angle + grad) {
+      mpu6050.update(); // Werte des Sensors aktualisieren
+      cur_angle = mpu6050.getAngleZ(); // Werte der Z-Achse (Drehwinkel) übergeben
+      wartezeit(gyro_delay);
+      Serial.print("GYRO -");  Serial.println(cur_angle); // DEBUG ONLY
+    }
   }
-}
-else{
-  // Rechtsdrehung
-  Serial.print("GYRO RECHTSDREHUNG"); // DEBUG ONLY
-  // Warte, bis das Gyroskop eine vollständige X° Drehung erfasst hat (<-180)
-  while (cur_angle >= angle - grad) {
-    mpu6050.update(); // Werte des Sensors aktualisieren
-    cur_angle = mpu6050.getAngleZ(); // Werte der Z-Achse (Drehwinkel) übergeben
-    wartezeit(gyro_delay);
-    Serial.print("GYRO -");  Serial.println(cur_angle); // DEBUG ONLY
+  else {
+    // Rechtsdrehung
+    Serial.print("GYRO RECHTSDREHUNG"); // DEBUG ONLY
+    // Warte, bis das Gyroskop eine vollständige X° Drehung erfasst hat (<-180)
+    while (cur_angle >= angle - grad) {
+      mpu6050.update(); // Werte des Sensors aktualisieren
+      cur_angle = mpu6050.getAngleZ(); // Werte der Z-Achse (Drehwinkel) übergeben
+      wartezeit(gyro_delay);
+      Serial.print("GYRO -");  Serial.println(cur_angle); // DEBUG ONLY
+    }
   }
-}
-
-  
-
   Serial.print(grad); // DEBUG ONLY
   Serial.println("° Drehung abgeschlossen"); // DEBUG ONLY
   return 1; // Drehung abgeschlossen
@@ -594,7 +590,7 @@ void wartezeit(unsigned short dauer) {
   unsigned short startMillis = (unsigned short)millis(); // Startpunkt der Wartefunktion in ms
 
   // Führe solange aus, wie die Dauer noch nicht verstrichen ist
-  while (currentMillis - startMillis <= dauer){
+  while (currentMillis - startMillis <= dauer) {
     currentMillis = (unsigned short)millis(); // Aktueller Zeitpunkt in ms
-  } 
+  }
 }
