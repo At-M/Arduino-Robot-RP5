@@ -11,7 +11,7 @@
 
   BUMPER
   FIX LEFT TURNING
-  
+
   Codecleanup
   Langsam stoppen um Getriebe/Motor zu schonen?
 
@@ -242,173 +242,90 @@ int ir_sensor(int sensornr) {
   distanceL = analogRead(ir2);
   int distanceR = 1; // Entfernung rechts
   distanceR = analogRead(ir3);
+
+  int irtemp = 0;
+  int distancetemp = 0;
+  int sumtemp = 0;
+
   int sumV = 0; // Summe der Entfernungen vorne
   int sumL = 0; // Summe der Entfernungen links
   int sumR = 0; // Summe der Entfernungen rechts
   int repeat = 4; // Anzahl der Mehrfachauslesungen
-  int repeat1 = 4; // 2. Anzahl der Mehrfachauslesungen
 
 
   switch (sensornr)
   {
+    // Vorne
     case 0:
-
-      Serial.print("IR_SENS - INITIAL DV:"); // DEBUG ONLY
-      Serial.println(distanceV); // DEBUG ONLY
-
-      // Fehlereinlesungen umgehen
-      if ((distanceV == 0) || (distanceV == -1)) {
-        distanceV = 100;
-      }
-      // Mehrfachauslesung der Entfernung
-      for (int i = 0; i < repeat1; i++)
-      {
-        // Entfernung auslesen
-        distanceV = analogRead(ir1); // Entfernungswert des Sensors übergeben
-        sumV += distanceV; // Entfernungswert zur Summe addieren
-        //Serial.print("Wirklicher Wert? - "); // DEBUG ONLY
-        //Serial.println(sumV / i); // DEBUG ONLY
-        wartezeit(ir_delay);
-      }
-      sumV = sumV / repeat1; // Mittelwert ausrechnen
-
-      //Entfernung < 20cm +- X? (Invertierte logik!)
-      if ((ir_entf - 50 < sumV) && (ir_entf + 50 > sumV))
-      {
-        sumV = 0; // Summe für nächste Berechnung zurücksetzen
-        distanceV = analogRead(ir1); // Entfernungswert des Sensors übergeben
-        // Mehrfachauslesung der Entfernung
-        for (int i = 0; i < repeat; i++)
-        {
-          distanceV = analogRead(ir1); // Entfernungswert des Sensors übergeben
-          sumV += distanceV; // Entfernungswert zur Summe addieren
-          Serial.print("MAX - Entfernung vorne - "); // DEBUG ONLY
-          Serial.println(sumV / i); // DEBUG ONLY
-          wartezeit(ir_delay);
-        }
-        sumV = sumV / repeat; // Mittelwert ausrechnen
-
-        Serial.print("MAX - Entfernung ERGEBNIS: "); // DEBUG ONLY
-        Serial.println(sumV); // DEBUG ONLY
-
-        // Wenn der Mittelwert kleiner als die ir_entf ist.. (Invertierte logik!)
-        if (sumV > ir_entf)
-        {
-          Serial.println("MAX - Ergebnis > ir_entf"); // DEBUG ONLY
-          return 1;
-        }
-      }
-      else {
-        Serial.println("MAX - ENTF OK"); // DEBUG ONLY
-        return 0;
-      }
+      distancetemp = distanceV;
+      sumtemp = sumV;
+      irtemp = ir1;
       break;
+    // Links
     case 1:
-      // SENSOR LINKS
-      Serial.print("IR_SENS - INITIAL DL:"); // DEBUG ONLY
-      Serial.println(distanceL); // DEBUG ONLY
-
-      // Fehlereinlesungen umgehen
-      if ((distanceL == 0) || (distanceL == -1)) {
-        distanceL = 100;
-      }
-      // Mehrfachauslesung der Entfernung
-      for (int i = 0; i < repeat1; i++)
-      {
-        // Entfernung auslesen
-        distanceL = analogRead(ir2); // Entfernungswert des Sensors übergeben
-        sumL += distanceL; // Entfernungswert zur Summe addieren
-        //Serial.print("Wirklicher Wert? - "); // DEBUG ONLY
-        //Serial.println(sumL / i); // DEBUG ONLY
-        wartezeit(ir_delay);
-      }
-      sumL = sumL / repeat1; // Mittelwert ausrechnen
-
-      //Entfernung < 20cm +- X? (Invertierte logik!)
-      if ((ir_entf2 - 50 < sumL) && (ir_entf2 + 50 > sumL))
-      {
-        sumL = 0; // Summe für nächste Berechnung zurücksetzen
-        distanceL = analogRead(ir2); // Entfernungswert des Sensors übergeben
-        // Mehrfachauslesung der Entfernung
-        for (int i = 0; i < repeat; i++)
-        {
-          distanceL = analogRead(ir2); // Entfernungswert des Sensors übergeben
-          sumL += distanceL; // Entfernungswert zur Summe addieren
-          Serial.print("MAX - Entfernung links - "); // DEBUG ONLY
-          Serial.println(sumL / i); // DEBUG ONLY
-          wartezeit(ir_delay);
-        }
-        sumL = sumL / repeat; // Mittelwert ausrechnen
-
-        Serial.print("MAX - Entfernung L ERGEBNIS: "); // DEBUG ONLY
-        Serial.println(sumL); // DEBUG ONLY
-
-        // Wenn der Mittelwert kleiner als die ir_entf ist.. (Invertierte logik!)
-        if (sumL > ir_entf2)
-        {
-          Serial.println("MAX - Ergebnis links > ir_entf2"); // DEBUG ONLY
-          return 1;
-        }
-      }
-      else {
-        return 0;
-      }
+      distancetemp = distanceL;
+      sumtemp = sumL;
+      irtemp = ir2;
       break;
     // Rechts
     case 2:
-      // SENSOR RECHTS
-      Serial.print("IR_SENS - INITIAL DRECHTS:"); // DEBUG ONLY
-      Serial.println(distanceR); // DEBUG ONLY
-
-      // Fehlereinlesungen umgehen
-      if ((distanceR == 0) || (distanceR == -1)) {
-        distanceR = 100;
-      }
-      // Mehrfachauslesung der Entfernung
-      for (int i = 0; i < repeat1; i++)
-      {
-        // Entfernung auslesen
-        distanceR = analogRead(ir3); // Entfernungswert des Sensors übergeben
-        sumR += distanceR; // Entfernungswert zur Summe addieren
-        //Serial.print("Wirklicher Wert? - "); // DEBUG ONLY
-        //Serial.println(sumR / i); // DEBUG ONLY
-        wartezeit(ir_delay);
-      }
-      sumR = sumR / repeat1; // Mittelwert ausrechnen
-
-      //Entfernung < 20cm +- X? (Invertierte logik!)
-      if ((ir_entf2 - 50 < sumR) && (ir_entf2 + 50 > sumR))
-      {
-        sumR = 0; // Summe für nächste Berechnung zurücksetzen
-        distanceR = analogRead(ir3); // Entfernungswert des Sensors übergeben
-        // Mehrfachauslesung der Entfernung
-        for (int i = 0; i < repeat; i++)
-        {
-          distanceR = analogRead(ir3); // Entfernungswert des Sensors übergeben
-          sumR += distanceR; // Entfernungswert zur Summe addieren
-          Serial.print("MAX - Entfernung Rechts - "); // DEBUG ONLY
-          Serial.println(sumR / i); // DEBUG ONLY
-          wartezeit(ir_delay);
-        }
-        sumR = sumR / repeat; // Mittelwert ausrechnen
-
-        Serial.print("MAX - Entfernung R ERGEBNIS: "); // DEBUG ONLY
-        Serial.println(sumR); // DEBUG ONLY
-
-        // Wenn der Mittelwert kleiner als die ir_entf ist.. (Invertierte logik!)
-        if (sumR > ir_entf2)
-        {
-          Serial.println("MAX - Rechts Ergebnis > ir_entf2"); // DEBUG ONLY
-          return 1;
-        }
-      }
-      else {
-        return 0;
-      }
+      distancetemp = distanceR;
+      sumtemp = sumR;
+      irtemp = ir3;
       break;
     default:
       // not happening
       break;
+  }
+
+  Serial.print("IR_SENS - INITIAL Distance:"); // DEBUG ONLY
+  Serial.println(distancetemp); // DEBUG ONLY
+
+  // Fehlereinlesungen umgehen
+  if ((distancetemp == 0) || (distancetemp == -1)) {
+    distancetemp = 100;
+  }
+  // Mehrfachauslesung der Entfernung
+  for (int i = 0; i < repeat; i++)
+  {
+    // Entfernung auslesen
+    distancetemp = analogRead(irtemp); // Entfernungswert des Sensors übergeben
+    sumtemp += distancetemp; // Entfernungswert zur Summe addieren
+    //Serial.print("Wirklicher Wert? - "); // DEBUG ONLY
+    //Serial.println(sumtemp / i); // DEBUG ONLY
+    wartezeit(ir_delay);
+  }
+  sumtemp = sumtemp / repeat; // Mittelwert ausrechnen
+
+  //Entfernung < 20cm +- X? (Invertierte logik!)
+  if ((ir_entf - 50 < sumtemp) && (ir_entf + 50 > sumtemp))
+  {
+    sumtemp = 0; // Summe für nächste Berechnung zurücksetzen
+    distancetemp = analogRead(irtemp); // Entfernungswert des Sensors übergeben
+    // Mehrfachauslesung der Entfernung
+    for (int i = 0; i < repeat; i++)
+    {
+      distancetemp = analogRead(irtemp); // Entfernungswert des Sensors übergeben
+      sumtemp += distancetemp; // Entfernungswert zur Summe addieren
+      Serial.print("MAX - Entfernung - "); // DEBUG ONLY
+      Serial.println(sumtemp / i); // DEBUG ONLY
+      wartezeit(ir_delay);
+    }
+    sumtemp = sumtemp / repeat; // Mittelwert ausrechnen
+
+    Serial.print("MAX - Entfernung ERGEBNIS: "); // DEBUG ONLY
+    Serial.println(sumtemp); // DEBUG ONLY
+
+    // Wenn der Mittelwert kleiner als die ir_entf ist.. (Invertierte logik!)
+    if (sumtemp > ir_entf)
+    {
+      Serial.println("MAX - Ergebnis > ir_entf"); // DEBUG ONLY
+      return 1;
+    }
+  }
+  else {
+    Serial.println("MAX - ENTF OK"); // DEBUG ONLY
+    return 0;
   }
 }
 // ######################## BUMPER ########################
