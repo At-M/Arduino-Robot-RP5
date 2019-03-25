@@ -22,11 +22,11 @@
   Ein (während Rechtsdrehung): Entfernung links zu gering
   Ein (während Rechtsdrehung): 180° Drehung
   Blinkend: Bumperkontakt erkannt
-  
+
   LED GRÜN:
   Ein (während Linksdrehung): Entfernung rechts zu gering
   Ein (während Rechtsdrehung): 90° Drehung
-  
+
   (Kauf-)Quellen:
 
   Infrarot (KY-032, schnelle Bewegungserkennung):
@@ -48,8 +48,13 @@
   Endschalter:
   https://www.amazon.de/gp/product/B0744HCY6G
 
-  OR-Gate für Endschalter:
+  OR-Gate für Endschalter (unbenutzt!)
   https://www.ebay.de/itm/5x-CMOS-4071-OR-Gatter-4-fach-2-Eingänge-C-MOS-IC-DIP14/311014657148
+
+
+  NAND-Gate für Endschalter:
+  https://www.ebay.de/itm/CD4093BE-CMOS-Quad-2-Input-NAND-Schmitt-Triggers-HLF-DIP-14-1-oder-2-St%C3%BCck/172410722963?ssPageName=STRK%3AMEBIDX%3AIT&var=471240518309&_trksid=p2057872.m2749.l2649
+  https://www.petervis.com/GCSE_Design_and_Technology_Electronic_Products/nand-gate-timers/nand-gate-timer-delay-on/cd4093b-pinout.gif
 
   Halterung Ultraschallsensor:
   https://www.thingiverse.com/thing:189585
@@ -338,9 +343,9 @@ bool bumpers() {
     Serial.println("BUMP - Gegengefahren"); // DEBUG ONLY
     for (i = 0; i < 10; i++) {
       digitalWrite(12, HIGH); // LED Rot ein
-      wartezeit(50);
+      wartezeit(150);
       digitalWrite(12, LOW); // LED Rot aus
-      wartezeit(50);
+      wartezeit(150);
       return 1; // Gegengefahren
     }
   }
