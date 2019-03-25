@@ -2,7 +2,7 @@
 #include <Wire.h> // Voraussetzung für Gyroskop 
 /*
    Autonomer Roboter "Gary"
-   Version 1.1
+   Version 1.2
    Made by:
    David Schmidt, Max Grüning, Steven Bolln, Pascal Harders
    Feb-Mar 2019
@@ -93,6 +93,9 @@ int gyro_delay = 50; // Wartezeit zwischen den Ausleseversuchen des Gyroskops
 int ir_sensor(int); // Input: Sensornummer | Rückgabe: Integer
 bool gyro_sensor(signed short int angle, int grad); // Input: Aktueller Winkel, zu Drehende Gradzahl | Rückgabe: Bool
 
+// Tasterfunktion
+bool bumpers(); // Input: Nichts | Rückgabe: Gedrückt o. Ungedrückt
+
 // Drehfunktion
 void turn(int, bool); // Input: Gradzahl, Korrigieren o. Drehung | Rückgabe: Nichts
 
@@ -163,31 +166,31 @@ void loop()
     Serial.println(sensorvar);
 
     //sensorvar1 = bumpers(); // Taster vorne checken
-    // Checke entfernung links (kleiner als "gegenfahren und rückwärts" aber größer gegenfahren
+    // Checke entfernung links
     leftvar = ir_sensor(1);
     // wenn entfernung links zu klein
     while (leftvar == 1) {
       digitalWrite(12, HIGH); // LED Rot an
       // Korrigieren
       turn(20, 1); // 20°
-      leftvar = 0;
       digitalWrite(12, LOW); // LED Rot aus
+      leftvar = 0;
     }
-    // Checke entfernung rechts (kleiner als "gegenfahren und rückwärts" aber größer gegenfahren
+    // Checke entfernung rechts
     rightvar = ir_sensor(2);
     // wenn entfernung rechts zu klein
     while (rightvar == 1) {
       digitalWrite(11, HIGH); // LED Grün an
       // Korrigieren
       turn(-20, 2); // -20°
-      rightvar = 0;
       digitalWrite(11, LOW); // LED Grün aus
+      rightvar = 0;
     }
     // wenn entfernung groß genug
     // setze motorgeschw zurück
     analogWrite(GSM1, motorvarR); // Rechter Motor
     analogWrite(GSM2, motorvarL); // Linker Motor
-
+    sensorvar = bumpers(); // Taster vorne überprüfen
   }
   // Anhalten
   // Motor 1 aus
@@ -236,48 +239,37 @@ void loop()
 // ######################## IR_Sensor ########################
 int ir_sensor(int sensornr) {
 
-  int distanceV = 1; // Entfernung vorne
-  distanceV = analogRead(ir1);
-  int distanceL = 1; // Entfernung links
-  distanceL = analogRead(ir2);
-  int distanceR = 1; // Entfernung rechts
-  distanceR = analogRead(ir3);
+  int irtemp = 0; // Temporäre Sensornummmer
+  int distancetemp = 0; // Temporärer Entfernungswert
+  int sumtemp = 0; // Temporärer Entfernungs-Summenwert
 
-  int irtemp = 0;
-  int distancetemp = 0;
-  int sumtemp = 0;
+  int repeat = 5; // Anzahl der Mehrfachauslesungen
 
-  int sumV = 0; // Summe der Entfernungen vorne
-  int sumL = 0; // Summe der Entfernungen links
-  int sumR = 0; // Summe der Entfernungen rechts
-  int repeat = 4; // Anzahl der Mehrfachauslesungen
+  int entfrange = 50; // Entfernungsbereich für Auslesungen
 
 
   switch (sensornr)
   {
     // Vorne
     case 0:
-      distancetemp = distanceV;
-      sumtemp = sumV;
       irtemp = ir1;
+      Serial.print("IR_SENS - Vorne:"); // DEBUG ONLY
       break;
     // Links
     case 1:
-      distancetemp = distanceL;
-      sumtemp = sumL;
       irtemp = ir2;
+      Serial.print("IR_SENS - Links:"); // DEBUG ONLY
       break;
     // Rechts
     case 2:
-      distancetemp = distanceR;
-      sumtemp = sumR;
       irtemp = ir3;
+      Serial.print("IR_SENS - Rechts:"); // DEBUG ONLY
       break;
     default:
       // not happening
       break;
   }
-
+  distancetemp = analogRead(irtemp); // Entfernungswert des Sensors übergeben
   Serial.print("IR_SENS - INITIAL Distance:"); // DEBUG ONLY
   Serial.println(distancetemp); // DEBUG ONLY
 
@@ -291,14 +283,12 @@ int ir_sensor(int sensornr) {
     // Entfernung auslesen
     distancetemp = analogRead(irtemp); // Entfernungswert des Sensors übergeben
     sumtemp += distancetemp; // Entfernungswert zur Summe addieren
-    //Serial.print("Wirklicher Wert? - "); // DEBUG ONLY
-    //Serial.println(sumtemp / i); // DEBUG ONLY
     wartezeit(ir_delay);
   }
   sumtemp = sumtemp / repeat; // Mittelwert ausrechnen
 
   //Entfernung < 20cm +- X? (Invertierte logik!)
-  if ((ir_entf - 50 < sumtemp) && (ir_entf + 50 > sumtemp))
+  if ((ir_entf - entfrange < sumtemp) && (ir_entf + entfrange > sumtemp))
   {
     sumtemp = 0; // Summe für nächste Berechnung zurücksetzen
     distancetemp = analogRead(irtemp); // Entfernungswert des Sensors übergeben
@@ -331,9 +321,16 @@ int ir_sensor(int sensornr) {
 // ######################## BUMPER ########################
 bool bumpers() {
   int value = digitalRead(bumpPin1);
+  int i = 0;
   if (value == 0) {
     Serial.println("BUMP - Gegengefahren"); // DEBUG ONLY
-    return 1; // Gegengefahren
+    for (i = 0; i < 10; i++) {
+      digitalWrite(12, HIGH); // LED Rot ein
+      wartezeit(50);
+      digitalWrite(12, LOW); // LED Rot aus
+      wartezeit(50);
+      return 1; // Gegengefahren
+    }
   }
   else {
     Serial.println("BUMP - OK"); // DEBUG ONLY
