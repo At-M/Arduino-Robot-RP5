@@ -11,10 +11,22 @@
 
   BUMPER
   FIX LEFT TURNING
+  FIX linksdrall, vorne erkennt zuerst
 
   Codecleanup
   Langsam stoppen um Getriebe/Motor zu schonen?
 
+  Fehlercodes:
+
+  LED ROT:
+  Ein (während Rechtsdrehung): Entfernung links zu gering
+  Ein (während Rechtsdrehung): 180° Drehung
+  Blinkend: Bumperkontakt erkannt
+  
+  LED GRÜN:
+  Ein (während Linksdrehung): Entfernung rechts zu gering
+  Ein (während Rechtsdrehung): 90° Drehung
+  
   (Kauf-)Quellen:
 
   Infrarot (KY-032, schnelle Bewegungserkennung):
@@ -168,7 +180,7 @@ void loop()
     //sensorvar1 = bumpers(); // Taster vorne checken
     // Checke entfernung links
     leftvar = ir_sensor(1);
-    // wenn entfernung links zu klein
+    // wenn entfernung links zu gering
     while (leftvar == 1) {
       digitalWrite(12, HIGH); // LED Rot an
       // Korrigieren
@@ -178,7 +190,7 @@ void loop()
     }
     // Checke entfernung rechts
     rightvar = ir_sensor(2);
-    // wenn entfernung rechts zu klein
+    // wenn entfernung rechts zu gering
     while (rightvar == 1) {
       digitalWrite(11, HIGH); // LED Grün an
       // Korrigieren
@@ -209,12 +221,12 @@ void loop()
       digitalWrite(11, HIGH); // LED Grün ein
       digitalWrite(12, LOW); // LED Rot aus
 
-      turn(170, 0); // 90° -> 180,
+      turn(170, 0); // 90° -> 170,
 
-      Serial.println("MAX - 90 grad gedreht"); // DEBUG ONLY
+      Serial.println("DREH - 90 grad gedreht"); // DEBUG ONLY
       gradcounter++; // Drehvariable auf 1 setzen (1 addieren)
       digitalWrite(11, LOW); //LED Grün aus
-      Serial.println("Gradcounter nachher90:"); // DEBUG ONLY
+      Serial.println("Gradcounter nachher 90:"); // DEBUG ONLY
       Serial.println(gradcounter); // DEBUG ONLY
       break;
     case 1:
@@ -222,13 +234,13 @@ void loop()
       digitalWrite(11, LOW); // LED Grün aus
       digitalWrite(12, HIGH); // LED Rot ein
 
-      turn(320, 0); // 180° -> 360-340
+      turn(320, 0); // 180° -> 360-320
 
-      Serial.println("MAX - 180 grad gedreht"); // DEBUG ONLY
+      Serial.println("DREH - 180 grad gedreht"); // DEBUG ONLY
       gradcounter--; // Drehvariable auf 0 setzen (1 subtrahieren)
       digitalWrite(11, LOW); // OK LED ein
-      digitalWrite(12, LOW); // Interrupt LED aus
-      Serial.println("Gradcounter nachher180:"); // DEBUG ONLY
+      digitalWrite(12, LOW); // LED Rot aus
+      Serial.println("Gradcounter nachher 180:"); // DEBUG ONLY
       Serial.println(gradcounter); // DEBUG ONLY
       break;
     default:
@@ -245,7 +257,7 @@ int ir_sensor(int sensornr) {
 
   int repeat = 5; // Anzahl der Mehrfachauslesungen
 
-  int entfrange = 50; // Entfernungsbereich für Auslesungen
+  int entfrange = 60; // Entfernungsbereich für Auslesungen (in v1.1: 50)
 
 
   switch (sensornr)
@@ -297,24 +309,24 @@ int ir_sensor(int sensornr) {
     {
       distancetemp = analogRead(irtemp); // Entfernungswert des Sensors übergeben
       sumtemp += distancetemp; // Entfernungswert zur Summe addieren
-      Serial.print("MAX - Entfernung - "); // DEBUG ONLY
+      Serial.print("IR_SENS - Entfernung - "); // DEBUG ONLY
       Serial.println(sumtemp / i); // DEBUG ONLY
       wartezeit(ir_delay);
     }
     sumtemp = sumtemp / repeat; // Mittelwert ausrechnen
 
-    Serial.print("MAX - Entfernung ERGEBNIS: "); // DEBUG ONLY
+    Serial.print("IR_SENS - Entfernung ERGEBNIS: "); // DEBUG ONLY
     Serial.println(sumtemp); // DEBUG ONLY
 
     // Wenn der Mittelwert kleiner als die ir_entf ist.. (Invertierte logik!)
     if (sumtemp > ir_entf)
     {
-      Serial.println("MAX - Ergebnis > ir_entf"); // DEBUG ONLY
+      Serial.println("IR_SENS - Ergebnis > ir_entf"); // DEBUG ONLY
       return 1;
     }
   }
   else {
-    Serial.println("MAX - ENTF OK"); // DEBUG ONLY
+    Serial.println("IR_SENS - ENTF OK"); // DEBUG ONLY
     return 0;
   }
 }
