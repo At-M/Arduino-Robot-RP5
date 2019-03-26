@@ -260,7 +260,7 @@ int ir_sensor(int sensornr) {
   int distancetemp = 0; // Temporärer Entfernungswert
   int sumtemp = 0; // Temporärer Entfernungs-Summenwert
 
-  int repeat = 5; // Anzahl der Mehrfachauslesungen
+  int repeat = 4; // Anzahl der Mehrfachauslesungen
 
   int entfrange = 70; // Entfernungsbereich für Auslesungen
 
@@ -304,7 +304,6 @@ int ir_sensor(int sensornr) {
     wartezeit(ir_delay);
   }
   sumtemp = sumtemp / repeat; // Mittelwert ausrechnen
-
   //Entfernung < 20cm +- X? (Invertierte logik!)
   if ((ir_entf - entfrange < sumtemp) && (ir_entf + entfrange > sumtemp))
   {
@@ -315,14 +314,30 @@ int ir_sensor(int sensornr) {
     {
       distancetemp = analogRead(irtemp); // Entfernungswert des Sensors übergeben
       sumtemp = sumtemp + distancetemp; // Entfernungswert zur Summe addieren
-      Serial.print("IR_SENS - Entfernung - "); // DEBUG ONLY
-      Serial.println(sumtemp / i); // DEBUG ONLY
+      if ((distancetemp == 0) || (distancetemp == -1)) {
+        distancetemp = 100;
+      }
+      Serial.print("IR_SENS - Entfernung - SUMTEMP: "); // DEBUG ONLY
+      Serial.print(sumtemp); // DEBUG ONLY
+      Serial.print(" - DISTEMP: "); // DEBUG ONLY
+      Serial.print(distancetemp); // DEBUG ONLY
+      Serial.print(" - i: "); // DEBUG ONLY
+      Serial.print(i); // DEBUG ONLY
+      Serial.print(" - SUM/I: "); // DEBUG ONLY
+      Serial.println(sumtemp / i + 1); // DEBUG ONLY
       wartezeit(ir_delay);
     }
     sumtemp = sumtemp / repeat; // Mittelwert ausrechnen
+    sumtemp = sumtemp + 50; // DEBUG TEST
+    Serial.println("###################"); // DEBUG ONLY
+    Serial.println(entfrange); // DEBUG ONLY
+    Serial.println("###################"); // DEBUG ONLY
 
     Serial.print("IR_SENS - Entfernung ERGEBNIS: "); // DEBUG ONLY
     Serial.println(sumtemp); // DEBUG ONLY
+
+    Serial.print("IR_SENS - Entfernung ERGEBNIS: "); // DEBUG ONLY
+    Serial.println(ir_entf); // DEBUG ONLY
 
     // Wenn der Mittelwert kleiner als die ir_entf ist.. (Invertierte logik!)
     if (sumtemp > ir_entf)
@@ -348,13 +363,13 @@ bool bumpers() {
       digitalWrite(12, LOW); // LED Rot aus
       wartezeit(150);
 
-// Motor 1 aus
+      // Motor 1 aus
       digitalWrite(in1, LOW);
       digitalWrite(in2, LOW);
       // Motor 2 aus
       digitalWrite(in3, LOW);
       digitalWrite(in4, LOW);
-      
+
       return 1; // Gegengefahren
     }
   }
@@ -433,7 +448,7 @@ void turn(int grad, int korrig) {
       gyro = 0;
       while (gyro == 0) {
         gyro = gyro_sensor(cur_angle, grad);
-      Serial.println("Gyrorechtsdrehung..");  
+        Serial.println("Gyrorechtsdrehung..");
       }
       // Anhalten
       // Motor 1 aus
@@ -478,7 +493,7 @@ void turn(int grad, int korrig) {
       gyro = 0;
       while (gyro == 0) {
         gyro = gyro_sensor(cur_angle, grad);
-      Serial.println("Gyrolinksdrehung..");  
+        Serial.println("Gyrolinksdrehung..");
       }
       // Anhalten
       // Motor 1 aus
