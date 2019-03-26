@@ -2,17 +2,30 @@
 #include <Wire.h> // Voraussetzung für Gyroskop 
 /*
    Autonomer Roboter "Gary"
-   Version 0.9
+   Version 1.2
    Made by:
    David Schmidt, Max Grüning, Steven Bolln, Pascal Harders
    Feb-Mar 2019
 
    TODO:
-  Interrupt ändern / entfernen
-  do drive vorwärts while wert von IR nicht doof
-  Hinderniserkennung beim Rückwärtsfahren?
+
+  BUMPER
+  FIX LEFT TURNING
+  FIX linksdrall, vorne erkennt zuerst
+
   Codecleanup
   Langsam stoppen um Getriebe/Motor zu schonen?
+
+  Fehlercodes:
+
+  LED ROT:
+  Ein (während Rechtsdrehung): Entfernung links zu gering
+  Ein (während Rechtsdrehung): 180° Drehung
+  Blinkend: Bumperkontakt erkannt
+
+  LED GRÜN:
+  Ein (während Linksdrehung): Entfernung rechts zu gering
+  Ein (während Rechtsdrehung): 90° Drehung
 
   (Kauf-)Quellen:
 
@@ -35,8 +48,13 @@
   Endschalter:
   https://www.amazon.de/gp/product/B0744HCY6G
 
-  OR-Gate für Endschalter:
+  OR-Gate für Endschalter (unbenutzt!)
   https://www.ebay.de/itm/5x-CMOS-4071-OR-Gatter-4-fach-2-Eingänge-C-MOS-IC-DIP14/311014657148
+
+
+  NAND-Gate für Endschalter:
+  https://www.ebay.de/itm/CD4093BE-CMOS-Quad-2-Input-NAND-Schmitt-Triggers-HLF-DIP-14-1-oder-2-St%C3%BCck/172410722963?ssPageName=STRK%3AMEBIDX%3AIT&var=471240518309&_trksid=p2057872.m2749.l2649
+  https://www.petervis.com/GCSE_Design_and_Technology_Electronic_Products/nand-gate-timers/nand-gate-timer-delay-on/cd4093b-pinout.gif
 
   Halterung Ultraschallsensor:
   https://www.thingiverse.com/thing:189585
@@ -49,31 +67,33 @@
 
 */
 
-// Gleichstrommotor 1
+// Gleichstrommotor 1 (Rechts)
 byte GSM1 = 10;
 byte in1 = 9;
 byte in2 = 8;
 
-// Gleichstrommotor 2
+// Gleichstrommotor 2 (Links)
 byte GSM2 = 5;
 byte in3 = 7;
 byte in4 = 6;
+
+int motorvarR = 160; // Rechter Motor (160)
+int motorvarL = 215; // Linker Motor (210/207)
 
 // Endschalter / Bumper (Failsafe, im Normalfall nicht genutzt)
 byte bumpPin1 = 3; // Vorne
 //byte bumpPin2 = 2; // Hinten // UNUSED
 
 // Sharp Infrarotsensoren
-int ir_entf = 209;  // 20cm = ca. 333 (David @Home) 209 (Schule)
+int ir_entf = 209;  // 209 (Schule)
+int ir_entf2 = 150; // 170 war eben
 byte ir1 = 14; // Sharp IR Entfernungssensor vorne
-byte ir2 = 15; // Sharp IR Entfernungssensor hinten
+byte ir2 = 15; // Sharp IR Entfernungssensor links
+byte ir3 = 17; // Sharp IR Entfernungssensor rechts
 int ir_delay = 50; // Wartezeit zwischen den Ausleseversuchen des IRSensors
 
 // Zeitrelevant
-const unsigned short halfsec = 500;  // Dauer von 0.5 Sekunden
-const unsigned short ngrad = 900;  // Dauer von 0.67/0.8 Sekunden, eine 90° Drehung
-const unsigned short oneeightyg = 1100;  // Dauer von 1.1 Sekunden, eine 180° Drehung
-const unsigned short onesec = 1000;  // Dauer von 1 Sekunde
+const unsigned short sec = 1000;  // Dauer von 1 Sekunde
 
 // Interruptbezogen
 volatile bool IR_flag1 = 0; // Interruptflag 1/0, wenn 1 dann wurde Interrupt1 (bump_ISR) ausgelöst
@@ -81,17 +101,28 @@ volatile bool IR_flag1 = 0; // Interruptflag 1/0, wenn 1 dann wurde Interrupt1 (
 // Gyroskop
 MPU6050 mpu6050(Wire);
 int gradcounter = 0; // Drehvariable
+bool gyro = 0; // Rückgabe der Funktion gyro_sensor
+int gyro_delay = 50; // Wartezeit zwischen den Ausleseversuchen des Gyroskops
 
 // Funktionsprototypen
 
-// Bewegungsfunktion
-void movecar(byte, const unsigned short); // Input: Richtung, Dauer | Rückgabe: Nichts
+// Sensorfunktionen
+int ir_sensor(int); // Input: Sensornummer | Rückgabe: Integer
+bool gyro_sensor(signed short int angle, int grad); // Input: Aktueller Winkel, zu Drehende Gradzahl | Rückgabe: Bool
 
-// Sensorfunktion
-void irsensor(); // Input: Nichts | Rückgabe: Nichts
+// Tasterfunktion
+bool bumpers(); // Input: Nichts | Rückgabe: Gedrückt o. Ungedrückt
+
+// Drehfunktion
+void turn(int, int); // Input: Gradzahl, Korrigieren o. Drehung | Rückgabe: Nichts
 
 // Wartefunktion (Ersatz für delay();)
 void wartezeit(unsigned short); // Input: Dauer | Rückgabe: Nichts
+
+// DebugLEDS
+//ROT: 12
+//GRÜN: 11
+
 
 
 // ######################## SETUP ########################
@@ -113,15 +144,9 @@ void setup()
 
   pinMode(bumpPin1, INPUT_PULLUP); // Bumper 1
 
-  // pinMode(infraR1, INPUT); // Quick-Infrarot 1
-
   pinMode (ir1, INPUT); // Sharp IR Entfernungssensor vorne
-  pinMode (ir2, INPUT); // Sharp IR Entfernungssensor hinten
-
-  // Interrupt UNUSED
-
-  //attachInterrupt(digitalPinToInterrupt(bumpPin1), bump_ISR, FALLING); // Interrupt1 wenn HIGH -> LOW vom Bumper1
-
+  pinMode (ir2, INPUT); // Sharp IR Entfernungssensor links
+  pinMode (ir3, INPUT); // Sharp IR Entfernungssensor rechts
 
   // GYROSKOP
   Serial.println("##GYRO...##"); // DEBUG ONLY
@@ -135,101 +160,304 @@ void setup()
 // Auszuführen in Dauerschleife:
 void loop()
 {
-  /*
-     Richtungen für die move() Funktion:
-
-     Richtungen:   (Nr)
-     Vorwärts:      1
-     Rückwärts:     3
-     Rechtsdreh.:   5
-     Anhalten:      9
-  */
-  // Während kein Interrupt ausgelöst wurde..
-  while (IR_flag1 == 0) {
-    Serial.print("Bump info - "); Serial.println(digitalRead(bumpPin1)); // 0 = Pressed; 1 = Unpressed // DEBUG ONLY
-
-    // Gyroskop Startposition aktualisieren (Winkel ~0°)
-    mpu6050.update();
-    Serial.print("Winkel: ");// DEBUG ONLY
-    Serial.println(mpu6050.getAngleZ());// DEBUG ONLY
-
-    irsensor(); // Infrarotsensoren auslesen
-    movecar(1, halfsec); // Vorwärts fahren für X Sekunden
-
-  }// .. führe oberes aus(Interruptflag = 0)
-
-  // Wenn ein Interruptflag gesetzt wurde
-  if (IR_flag1 == 1)
-  {
-
-    Serial.println("Bumper ausgelöst"); // DEBUG ONLY
-    Serial.println("IRF - stop,back2s"); // DEBUG ONLY
-
-    movecar(9, halfsec); // Anhalten
-    movecar(3, onesec * 2); // Hinten, 2sek
-    IR_flag1 = 0; // Interruptflag zurücksetzen
-    Serial.println("##INTERRUPT DONE/RESET##"); // DEBUG ONLY
-  }
-  else {
-    // do nothing
-  }
-}
-// ######################## INTERRUPT VON BUMPER ########################
-// Sobald "gegen" ein Hindernis gefahren wird
-void bump_ISR() {
-  IR_flag1 = 0;
-  static unsigned short last_interrupt_time = 0; // Zeitpunkt des letzten Interrupts
-  unsigned short interrupt_time = (unsigned short)millis(); // Zeitpunkt des aktuellen Interrupts
-
-
-  // Wenn ein weiterer Interrupt schneller als X ms seit dem letzten kommt, oder ein Interrupt bereits läuft, wird ein neuer Interrupt ignoriert
-  if (interrupt_time - last_interrupt_time > 1000)
-  {
-    Serial.println("##INTERRUPT - STOP##"); // DEBUG ONLY
-    // Motor 1 aus
-    digitalWrite(in1, LOW);
-    digitalWrite(in2, LOW);
-    // Motor 2 aus
-    digitalWrite(in3, LOW);
-    digitalWrite(in4, LOW);
-    IR_flag1 = 1;
-    Serial.println("##STOPPED##"); // DEBUG ONLY
-    //Serial.print("IRS - Last_Interrupt: "); Serial.print(last_interrupt_time); Serial.print("| interrupt_time - "); Serial.print(interrupt_time); Serial.print(" Last-Current - "); Serial.println(interrupt_time - last_interrupt_time); // DEBUG ONLY
-  }
-  // Wenn Mehrfachauslösungen erkannt wurden..
-  else if (IR_flag1 == 1) {
-    // .. warte
-    Serial.println("##INTERRUPT## - Debounce"); // DEBUG ONLY
-    Serial.print("Bump info - "); Serial.println(digitalRead(bumpPin1)); // DEBUG ONLY
-  }
-  last_interrupt_time = interrupt_time; // Aktuellen Interruptzeitpunkt als letzten Zeitpunkt speichern
-
-
-}
-// ######################## BEWEGUNGSFUNKTION ########################
-void movecar(byte richtung, const unsigned short dauer) {
-  /*
-    GSM1 / Motor 1 = Rechts | GSM2 / Motor 2 = Links
-    Hinweis: Motor 2 dreht andersherum als Motor 1
-    d.h. die Befehle bei Motor2 sind invertiert zum Motor 1
-
-    Bei gleicher Geschwindigkeitsvariable fährt der Roboter nach links, dswg GSM2 etwas schneller
-  */
-  bool motaus = 0; // Variable für Motor Ausschalterkennung
-
-  mpu6050.update(); // Werte des Sensors aktualisieren
-
-  signed short int angle = mpu6050.getAngleZ(); // Winkel beim Starten der Funktion
-  signed short int cur_angle = angle; // Aktueller Winkel
+  int sensorvar = 0;
+  int leftvar = 0;
+  int rightvar = 0;
 
   // Motorengeschwindigkeit festlegen
-  analogWrite(GSM1, 160); // Rechter Motor (160)
-  analogWrite(GSM2, 200); // Linker Motor (240)
-  Serial.println("MOVE - Start"); // DEBUG ONLY
+  analogWrite(GSM1, motorvarR); // Rechter Motor
+  analogWrite(GSM2, motorvarL); // Linker Motor
 
-  //###########Vorwärts###########
-  switch (richtung) {
+  Serial.println("MOVE - INITIAL START"); // DEBUG ONLY
+
+  // Motor 1 vorwärts
+  digitalWrite(in1, HIGH);
+  digitalWrite(in2, LOW);
+  // Motor 2 vorwärts
+  digitalWrite(in3, LOW);
+  digitalWrite(in4, HIGH);
+
+  while (sensorvar == 0) {
+    sensorvar = ir_sensor(0); // Sensor 0 = Vorne
+    Serial.print("SENSORVAR: ");
+    Serial.println(sensorvar);
+
+    //sensorvar1 = bumpers(); // Taster vorne checken
+    // Checke entfernung links
+    leftvar = ir_sensor(1);
+    // wenn entfernung links zu gering
+    while (leftvar == 1) {
+      digitalWrite(12, HIGH); // LED Rot an
+      // Korrigieren
+      turn(35, 1); // 20°
+      digitalWrite(12, LOW); // LED Rot aus
+      leftvar = 0;
+    }
+    // Checke entfernung rechts
+    rightvar = ir_sensor(2);
+    // wenn entfernung rechts zu gering
+    while (rightvar == 1) {
+      digitalWrite(11, HIGH); // LED Grün an
+      // Korrigieren
+      turn(-35, 2); // -20°
+      digitalWrite(11, LOW); // LED Grün aus
+      rightvar = 0;
+    }
+    // wenn entfernung groß genug
+    // setze motorgeschw zurück
+    analogWrite(GSM1, motorvarR); // Rechter Motor
+    analogWrite(GSM2, motorvarL); // Linker Motor
+    sensorvar = bumpers(); // Taster vorne überprüfen
+  }
+  // Anhalten
+  // Motor 1 aus
+  digitalWrite(in1, LOW);
+  digitalWrite(in2, LOW);
+  // Motor 2 aus
+  digitalWrite(in3, LOW);
+  digitalWrite(in4, LOW);
+
+  wartezeit(50);
+  // Unterscheiden zwischen 90° und 180° Drehung
+
+  switch (gradcounter) {
+    case 0:
+      // 90 grad drehen
+      digitalWrite(11, HIGH); // LED Grün ein
+      digitalWrite(12, LOW); // LED Rot aus
+
+      turn(170, 0); // 90° -> 170,
+
+      Serial.println("DREH - 90 grad gedreht"); // DEBUG ONLY
+      gradcounter++; // Drehvariable auf 1 setzen (1 addieren)
+      digitalWrite(11, LOW); //LED Grün aus
+      Serial.println("Gradcounter nachher 90:"); // DEBUG ONLY
+      Serial.println(gradcounter); // DEBUG ONLY
+      break;
     case 1:
+      // 180 Grad drehen
+      digitalWrite(11, LOW); // LED Grün aus
+      digitalWrite(12, HIGH); // LED Rot ein
+
+      turn(320, 0); // 180° -> 360-320
+
+      Serial.println("DREH - 180 grad gedreht"); // DEBUG ONLY
+      gradcounter--; // Drehvariable auf 0 setzen (1 subtrahieren)
+      digitalWrite(11, LOW); // OK LED ein
+      digitalWrite(12, LOW); // LED Rot aus
+      Serial.println("Gradcounter nachher 180:"); // DEBUG ONLY
+      Serial.println(gradcounter); // DEBUG ONLY
+      break;
+    default:
+      // keine Reaktion
+      break;
+  }
+}
+// ######################## IR_Sensor ########################
+int ir_sensor(int sensornr) {
+
+  int irtemp = 0; // Temporäre Sensornummmer
+  int distancetemp = 0; // Temporärer Entfernungswert
+  int sumtemp = 0; // Temporärer Entfernungs-Summenwert
+
+  int repeat = 4; // Anzahl der Mehrfachauslesungen
+
+  int entfrange = 70; // Entfernungsbereich für Auslesungen
+
+
+  switch (sensornr)
+  {
+    // Vorne
+    case 0:
+      irtemp = ir1;
+      entfrange = 50; // Vorne weniger sensibel, da sonst Wand zuerst von vorne erkannt
+      Serial.print("IR_SENS - Vorne:"); // DEBUG ONLY
+      break;
+    // Links
+    case 1:
+      irtemp = ir2;
+      Serial.print("IR_SENS - Links:"); // DEBUG ONLY
+      break;
+    // Rechts
+    case 2:
+      irtemp = ir3;
+      Serial.print("IR_SENS - Rechts:"); // DEBUG ONLY
+      break;
+    default:
+      // not happening
+      break;
+  }
+  distancetemp = analogRead(irtemp); // Entfernungswert des Sensors übergeben
+  Serial.print("IR_SENS - INITIAL Distance:"); // DEBUG ONLY
+  Serial.println(distancetemp); // DEBUG ONLY
+
+  // Fehlereinlesungen umgehen
+  if ((distancetemp == 0) || (distancetemp == -1)) {
+    distancetemp = 100;
+  }
+  // Mehrfachauslesung der Entfernung
+  for (int i = 0; i < repeat; i++)
+  {
+    // Entfernung auslesen
+    distancetemp = analogRead(irtemp); // Entfernungswert des Sensors übergeben
+    sumtemp += distancetemp; // Entfernungswert zur Summe addieren
+    wartezeit(ir_delay);
+  }
+  sumtemp = sumtemp / repeat; // Mittelwert ausrechnen
+  //Entfernung < 20cm +- X? (Invertierte logik!)
+  if ((ir_entf - entfrange < sumtemp) && (ir_entf + entfrange > sumtemp))
+  {
+    sumtemp = 0; // Summe für nächste Berechnung zurücksetzen
+    distancetemp = analogRead(irtemp); // Entfernungswert des Sensors übergeben
+    // Mehrfachauslesung der Entfernung
+    for (int i = 0; i < repeat; i++)
+    {
+      distancetemp = analogRead(irtemp); // Entfernungswert des Sensors übergeben
+      sumtemp = sumtemp + distancetemp; // Entfernungswert zur Summe addieren
+      if ((distancetemp == 0) || (distancetemp == -1)) {
+        distancetemp = 100;
+      }
+      Serial.print("IR_SENS - Entfernung - SUMTEMP: "); // DEBUG ONLY
+      Serial.print(sumtemp); // DEBUG ONLY
+      Serial.print(" - DISTEMP: "); // DEBUG ONLY
+      Serial.print(distancetemp); // DEBUG ONLY
+      Serial.print(" - i: "); // DEBUG ONLY
+      Serial.print(i); // DEBUG ONLY
+      Serial.print(" - SUM/I: "); // DEBUG ONLY
+      Serial.println(sumtemp / i + 1); // DEBUG ONLY
+      wartezeit(ir_delay);
+    }
+    sumtemp = sumtemp / repeat; // Mittelwert ausrechnen
+    sumtemp = sumtemp + 50; // DEBUG TEST
+    Serial.println("###################"); // DEBUG ONLY
+    Serial.println(entfrange); // DEBUG ONLY
+    Serial.println("###################"); // DEBUG ONLY
+
+    Serial.print("IR_SENS - Entfernung ERGEBNIS: "); // DEBUG ONLY
+    Serial.println(sumtemp); // DEBUG ONLY
+
+    Serial.print("IR_SENS - Entfernung ERGEBNIS: "); // DEBUG ONLY
+    Serial.println(ir_entf); // DEBUG ONLY
+
+    // Wenn der Mittelwert kleiner als die ir_entf ist.. (Invertierte logik!)
+    if (sumtemp > ir_entf)
+    {
+      Serial.println("IR_SENS - Ergebnis > ir_entf"); // DEBUG ONLY
+      return 1;
+    }
+  }
+  else {
+    Serial.println("IR_SENS - ENTF OK"); // DEBUG ONLY
+    return 0;
+  }
+}
+// ######################## BUMPER ########################
+bool bumpers() {
+  int value = digitalRead(bumpPin1);
+  int i = 0;
+  if (value == 0) {
+    Serial.println("BUMP - Gegengefahren"); // DEBUG ONLY
+    for (i = 0; i < 10; i++) {
+      digitalWrite(12, HIGH); // LED Rot ein
+      wartezeit(150);
+      digitalWrite(12, LOW); // LED Rot aus
+      wartezeit(150);
+
+      // Motor 1 aus
+      digitalWrite(in1, LOW);
+      digitalWrite(in2, LOW);
+      // Motor 2 aus
+      digitalWrite(in3, LOW);
+      digitalWrite(in4, LOW);
+
+      return 1; // Gegengefahren
+    }
+  }
+  else {
+    Serial.println("BUMP - OK"); // DEBUG ONLY
+    return 0; // Kein Kontakt
+  }
+}
+// ######################## TURN ########################
+void turn(int grad, int korrig) {
+  mpu6050.update(); // Werte des Sensors aktualisieren
+  signed short int cur_angle = mpu6050.getAngleZ(); // Winkel beim Starten der Funktion
+  Serial.print("TURN INITIAL -");  Serial.println(cur_angle); // DEBUG ONLY
+  switch (korrig)
+  {
+    case 0:
+      // Motor 1 rückwärts
+      digitalWrite(in1, LOW);
+      digitalWrite(in2, HIGH);
+      // Motor 2 rückwärts
+      digitalWrite(in3, HIGH);
+      digitalWrite(in4, LOW);
+      wartezeit(2000);
+      // Motor 1 aus
+      digitalWrite(in1, LOW);
+      digitalWrite(in2, LOW);
+      // Motor 2 aus
+      digitalWrite(in3, LOW);
+      digitalWrite(in4, LOW);
+
+      // Rechtsdrehung
+      // Motor 1 rückwärts
+      digitalWrite(in1, LOW);
+      digitalWrite(in2, HIGH);
+      // Motor 2 vorwärts
+      digitalWrite(in3, LOW);
+      digitalWrite(in4, HIGH);
+
+      while (gyro == 0) {
+        gyro = gyro_sensor(cur_angle, grad);
+      }
+      // Anhalten
+      // Motor 1 aus
+      digitalWrite(in1, LOW);
+      digitalWrite(in2, LOW);
+      // Motor 2 aus
+      digitalWrite(in3, LOW);
+      digitalWrite(in4, LOW);
+      wartezeit(500);
+      break;
+    case 1:
+      // Links SENSOR
+      Serial.println("Turn Rechtsssensor");
+      // Motor 1 aus
+      digitalWrite(in1, LOW);
+      digitalWrite(in2, LOW);
+      // Motor 2 aus
+      digitalWrite(in3, LOW);
+      digitalWrite(in4, LOW);
+
+      //    wartezeit(3000);
+      // Motorengeschwindigkeit festlegen
+      analogWrite(GSM1, motorvarR); // Rechter Motor
+      analogWrite(GSM2, motorvarL); // Linker Motor
+
+      // Linksdrehung
+      // Motor 1 vorwärts
+      Serial.println("Mot1 Rückwärts");
+      digitalWrite(in1, LOW);
+      digitalWrite(in2, HIGH);
+      // Motor 2 rückwärts
+      Serial.println("Mot2 Vorwärts");
+      digitalWrite(in3, LOW);
+      digitalWrite(in4, HIGH);
+      //wartezeit(1000);
+      gyro = 0;
+      while (gyro == 0) {
+        gyro = gyro_sensor(cur_angle, grad);
+        Serial.println("Gyrorechtsdrehung..");
+      }
+      // Anhalten
+      // Motor 1 aus
+      digitalWrite(in1, LOW);
+      digitalWrite(in2, LOW);
+      // Motor 2 aus
+      digitalWrite(in3, LOW);
+      digitalWrite(in4, LOW);
+      //wartezeit(1000);
       // Motor 1 vorwärts
       digitalWrite(in1, HIGH);
       digitalWrite(in2, LOW);
@@ -237,200 +465,100 @@ void movecar(byte richtung, const unsigned short dauer) {
       digitalWrite(in3, LOW);
       digitalWrite(in4, HIGH);
       break;
-
-    //###########Rückwärts###########
-    case 3:
-      // Motor 1 rückwärts
+    case 2:
+      // RECHTS SENSOR
+      Serial.println("Turn Rechtsssensor");
+      // Motor 1 aus
       digitalWrite(in1, LOW);
-      digitalWrite(in2, HIGH);
-      // Motor 2 Rückwärts
+      digitalWrite(in2, LOW);
+      // Motor 2 aus
+      digitalWrite(in3, LOW);
+      digitalWrite(in4, LOW);
+
+      //    wartezeit(3000);
+      // Motorengeschwindigkeit festlegen
+      analogWrite(GSM1, motorvarR); // Rechter Motor
+      analogWrite(GSM2, motorvarL); // Linker Motor
+
+      // Linksdrehung
+      // Motor 1 vorwärts
+      Serial.println("Mot1 Vorwärts");
+      digitalWrite(in1, HIGH);
+      digitalWrite(in2, LOW);
+      // Motor 2 rückwärts
+      Serial.println("Mot2 Rückwärts");
       digitalWrite(in3, HIGH);
       digitalWrite(in4, LOW);
-      break;
-
-    //###########Rechtsdrehung###########
-    case 5:
-      // Motor 1 rückwärts
+      //wartezeit(1000);
+      gyro = 0;
+      while (gyro == 0) {
+        gyro = gyro_sensor(cur_angle, grad);
+        Serial.println("Gyrolinksdrehung..");
+      }
+      // Anhalten
+      // Motor 1 aus
       digitalWrite(in1, LOW);
-      digitalWrite(in2, HIGH);
+      digitalWrite(in2, LOW);
+      // Motor 2 aus
+      digitalWrite(in3, LOW);
+      digitalWrite(in4, LOW);
+      //wartezeit(1000);
+      // Motor 1 vorwärts
+      digitalWrite(in1, HIGH);
+      digitalWrite(in2, LOW);
       // Motor 2 vorwärts
       digitalWrite(in3, LOW);
       digitalWrite(in4, HIGH);
       break;
-
-    //###########Anhalten###########
-    case 9:
-      // Motor 1 aus
-      digitalWrite(in1, LOW);
-      digitalWrite(in2, LOW);
-      // Motor 2 aus
-      digitalWrite(in3, LOW);
-      digitalWrite(in4, LOW);
-      motaus = 1;
-      break;
-
-    //###########FAILSAFE###########
     default:
-      // Falls die Werteübergabe nicht korrekt funktioniert, dann..
-      // Motor 1 aus
-      digitalWrite(in1, LOW);
-      digitalWrite(in2, LOW);
-      // Motor 2 aus
-      digitalWrite(in3, LOW);
-      digitalWrite(in4, LOW);
+      // Not happening
       break;
   }
-  // Wenn eine Rechtsdrehung erfolgen soll..
-  if (richtung == 5) {
-    // .. und die Wartedauer einer "180°-Drehungs-Dauer" entspricht..
-    if (dauer == oneeightyg) {
-      // Warte, bis das Gyroskop eine vollständige 180° Drehung erfasst hat (<-180)
-      while (cur_angle >= angle - 180) {
-        mpu6050.update(); // Werte des Sensors aktualisieren
-        cur_angle = mpu6050.getAngleZ(); // Werte der Z-Achse (Drehwinkel) übergeben
-        wartezeit(ir_delay);
-        Serial.print("SIR(180) -");  Serial.println(cur_angle); // DEBUG ONLY
-      }
+  gyro = 0;
+}
+// ######################## GYRO ########################
+// Überprüfe ob Drehung vollendet
+bool gyro_sensor(signed short int angle, int grad) {
+  // Angle = Winkel beim Starten der Funktion
+  // Grad = Zu erreichender Winkel(Gradzahl)
+  signed short int cur_angle = angle; // Aktueller Wert
+  Serial.print("GYRO INIT CURANGLE -");  Serial.println(cur_angle); // DEBUG ONLY
+  Serial.print("GYRO INIT ANGLE -");  Serial.println(angle); // DEBUG ONLY
+
+  if (grad < 0) {
+    // Linksdrehung
+    Serial.print("GYRO LINKSDREHUNG"); // DEBUG ONLY
+    // Warte, bis das Gyroskop eine vollständige X° Drehung erfasst hat (<-180)
+    while (cur_angle <= angle + grad) {
+      mpu6050.update(); // Werte des Sensors aktualisieren
+      cur_angle = mpu6050.getAngleZ(); // Werte der Z-Achse (Drehwinkel) übergeben
+      wartezeit(gyro_delay);
+      Serial.print("GYRO -");  Serial.println(cur_angle); // DEBUG ONLY
     }
-    // .. oder die Wartedauer eine "90°-Drehungs-Dauer" entspricht..
-    else if (dauer == ngrad)
-      // Warte, Bis das Gyroskop eine vollständige 90° Drehung erfasst hat (<-90)
-      while (cur_angle >= angle - 93) {
-        mpu6050.update(); // Werte des Sensors aktualisieren
-        cur_angle = mpu6050.getAngleZ(); // Werte der Z-Achse (Drehwinkel) übergeben
-        wartezeit(ir_delay);
-        Serial.print("SIR(90) -");  Serial.println(cur_angle); // DEBUG ONLY
-      }
-    Serial.println("Drehung abgeschlossen"); // DEBUG ONLY
   }
   else {
-    wartezeit(dauer); // Warte X ms
-  }
-
-  //###########Bewegung stoppen###########
-  // Wenn der Motor noch nicht ausgeschaltet wurde, dann..
-  if (motaus == 0) {
-    // Motor 1 aus
-    digitalWrite(in1, LOW);
-    digitalWrite(in2, LOW);
-    // Motor 2 aus
-    digitalWrite(in3, LOW);
-    digitalWrite(in4, LOW);
-  }
-  // .. wenn doch
-  else {
-    // Variable zurücksetzen
-    motaus = 0;
-  }
-  Serial.println("MOVE - Done"); // DEBUG ONLY
-}
-// ######################## LESEN DER SHARP IR SENSOREN ########################
-void irsensor() {
-  long distanceV = 1; // Entfernung vorne
-  long distanceH = 0; // Entfernung hinten DEBUG ONLY UNUSED
-  int sumV = 0; // Summe der Entfernungen vorne
-  int repeat = 4; // Anzahl der Mehrfachauslesungen
-  int repeat1 = 4; // 2. Anzahl der Mehrfachauslesungen
-
-  // Entfernung auslesen
-  distanceV = analogRead(ir1);
-  distanceH = analogRead(ir2); // DEBUG ONLY UNUSED
-  Serial.print("MAX - DV:"); // DEBUG ONLY
-  Serial.println(distanceV); // DEBUG ONLY
-  Serial.print("MAX - DH:"); // DEBUG ONLY
-  Serial.println(distanceH); // DEBUG ONLY
-
-  // Fehlereinlesungen umgehen
-  if ((distanceV == 0) || (distanceV == -1)) {
-    distanceV = 100;
-  }
-  // Mehrfachauslesung der Entfernung
-  for (int i = 0; i < repeat1; i++)
-  {
-    // Entfernung auslesen
-    distanceV = analogRead(ir1); // Entfernungswert des Sensors übergeben
-    sumV += distanceV; // Entfernungswert zur Summe addieren
-    Serial.print("Wirklicher Wert? - "); // DEBUG ONLY
-    Serial.println(sumV / i); // DEBUG ONLY
-    wartezeit(ir_delay);
-  }
-  sumV = sumV / repeat1; // Mittelwert ausrechnen
-
-  //Entfernung < 20cm +- X? (Invertierte logik!)
-  if ((ir_entf - 50 < sumV) && (ir_entf + 50 > sumV))
-  {
-    sumV = 0; // Summe für nächste Berechnung zurücksetzen
-    distanceV = analogRead(ir1); // Entfernungswert des Sensors übergeben
-    Serial.print("MAX - KLEINER 20 DV:"); // DEBUG ONLY
-    Serial.println(distanceV); // DEBUG ONLY
-    movecar(9, halfsec); // Anhalten
-    Serial.println("MAX - ANGEHALTEN"); // DEBUG ONLY
-
-    // Mehrfachauslesung der Entfernung
-    for (int i = 0; i < repeat; i++)
-    {
-      distanceV = analogRead(ir1); // Entfernungswert des Sensors übergeben
-      sumV += distanceV; // Entfernungswert zur Summe addieren
-      Serial.print("MAX - Entfernung vorne - "); // DEBUG ONLY
-      Serial.println(sumV / i); // DEBUG ONLY
-      wartezeit(ir_delay);
-    }
-    sumV = sumV / repeat; // Mittelwert ausrechnen
-
-    Serial.print("MAX - Entfernung ERGEBNIS: "); // DEBUG ONLY
-    Serial.println(sumV); // DEBUG ONLY
-
-    // Wenn der Mittelwert kleiner als die ir_entf ist.. (Invertierte logik!)
-    if (sumV > ir_entf)
-    {
-      Serial.println("MAX - Ergebnis > ir_entf"); // DEBUG ONLY
-
-      // Zurückfahren
-      movecar(3, onesec);
-      Serial.println("MAX - Zurückgefahren, Gradcounter:"); // DEBUG ONLY
-      Serial.println(gradcounter); // DEBUG ONLY
-      
-      // Unterscheiden zwischen 90° und 180° Drehung
-      switch (gradcounter) {
-        case 0:
-          // 90 grad drehen
-          digitalWrite(16, HIGH); // LED Grün ein
-          digitalWrite(17, LOW); // LED Rot aus
-          movecar(5, ngrad);
-          Serial.println("MAX - 90 grad gedreht"); // DEBUG ONLY
-          gradcounter++; // Drehvariable auf 1 setzen (1 addieren)
-          digitalWrite(16, LOW); //LED Grün aus
-          Serial.println("Gradcounter nachher90:"); // DEBUG ONLY
-          Serial.println(gradcounter); // DEBUG ONLY
-          break;
-        case 1:
-          // 180 Grad drehen
-          digitalWrite(16, LOW); // LED Grün aus
-          digitalWrite(17, HIGH); // LED Rot ein
-          movecar(5, oneeightyg);
-          Serial.println("MAX - 180 grad gedreht"); // DEBUG ONLY
-          gradcounter--; // Drehvariable auf 0 setzen (1 subtrahieren)
-          digitalWrite(16, LOW); // OK LED ein
-          digitalWrite(17, LOW); // Interrupt LED aus
-          Serial.println("Gradcounter nachher180:"); // DEBUG ONLY
-          Serial.println(gradcounter); // DEBUG ONLY
-          break;
-        default:
-          // keine Reaktion
-          break;
-      }
+    // Rechtsdrehung
+    Serial.print("GYRO RECHTSDREHUNG"); // DEBUG ONLY
+    // Warte, bis das Gyroskop eine vollständige X° Drehung erfasst hat (<-180)
+    while (cur_angle >= angle - grad) {
+      mpu6050.update(); // Werte des Sensors aktualisieren
+      cur_angle = mpu6050.getAngleZ(); // Werte der Z-Achse (Drehwinkel) übergeben
+      wartezeit(gyro_delay);
+      Serial.print("GYRO -");  Serial.println(cur_angle); // DEBUG ONLY
     }
   }
+  Serial.print(grad); // DEBUG ONLY
+  Serial.println("° Drehung abgeschlossen"); // DEBUG ONLY
+  return 1; // Drehung abgeschlossen
 }
-
+// ######################## WARTEZEIT ########################
 // Ersatz für delay() mithilfe millis()
 void wartezeit(unsigned short dauer) {
   unsigned short currentMillis = 0; // Aktueller Zeitpunkt
   unsigned short startMillis = (unsigned short)millis(); // Startpunkt der Wartefunktion in ms
-  Serial.print("WAIT - "); // DEBUG ONLY
-  Serial.print(dauer); // DEBUG ONLY
-  do {
+
+  // Führe solange aus, wie die Dauer noch nicht verstrichen ist
+  while (currentMillis - startMillis <= dauer) {
     currentMillis = (unsigned short)millis(); // Aktueller Zeitpunkt in ms
-  } while (currentMillis - startMillis <= dauer); // Führe oberes aus, bis die Dauer verstrichen ist
-  Serial.println(" ...DONE!"); // DEBUG ONLY
+  }
 }
