@@ -262,7 +262,7 @@ int ir_sensor(int sensornr) {
 
   int repeat = 5; // Anzahl der Mehrfachauslesungen
 
-  int entfrange = 60; // Entfernungsbereich für Auslesungen (in v1.1: 50)
+  int entfrange = 70; // Entfernungsbereich für Auslesungen
 
 
   switch (sensornr)
@@ -270,6 +270,7 @@ int ir_sensor(int sensornr) {
     // Vorne
     case 0:
       irtemp = ir1;
+      entfrange = 50; // Vorne weniger sensibel, da sonst Wand zuerst von vorne erkannt
       Serial.print("IR_SENS - Vorne:"); // DEBUG ONLY
       break;
     // Links
