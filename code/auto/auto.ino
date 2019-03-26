@@ -161,6 +161,7 @@ void setup()
 void loop()
 {
   int sensorvar = 0;
+  int sensorvar2 = 0;
   int leftvar = 0;
   int rightvar = 0;
 
@@ -177,7 +178,7 @@ void loop()
   digitalWrite(in3, LOW);
   digitalWrite(in4, HIGH);
 
-  while (sensorvar == 0) {
+  while ((sensorvar == 0)&&(sensorvar2 == 0)) {
     sensorvar = ir_sensor(0); // Sensor 0 = Vorne
     Serial.print("SENSORVAR: ");
     Serial.println(sensorvar);
@@ -207,7 +208,7 @@ void loop()
     // setze motorgeschw zurück
     analogWrite(GSM1, motorvarR); // Rechter Motor
     analogWrite(GSM2, motorvarL); // Linker Motor
-    sensorvar = bumpers(); // Taster vorne überprüfen
+    sensorvar2 = bumpers(); // Taster vorne überprüfen
   }
   // Anhalten
   // Motor 1 aus
