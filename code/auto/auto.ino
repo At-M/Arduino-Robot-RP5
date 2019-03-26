@@ -114,7 +114,7 @@ bool gyro_sensor(signed short int angle, int grad); // Input: Aktueller Winkel, 
 bool bumpers(); // Input: Nichts | Rückgabe: Gedrückt o. Ungedrückt
 
 // Drehfunktion
-void turn(int, bool); // Input: Gradzahl, Korrigieren o. Drehung | Rückgabe: Nichts
+void turn(int, int); // Input: Gradzahl, Korrigieren o. Drehung | Rückgabe: Nichts
 
 // Wartefunktion (Ersatz für delay();)
 void wartezeit(unsigned short); // Input: Dauer | Rückgabe: Nichts
@@ -199,7 +199,7 @@ void loop()
     while (rightvar == 1) {
       digitalWrite(11, HIGH); // LED Grün an
       // Korrigieren
-      turn(-20, 2); // -20°
+      turn(-35, 2); // -20°
       digitalWrite(11, LOW); // LED Grün aus
       rightvar = 0;
     }
@@ -356,7 +356,7 @@ bool bumpers() {
   }
 }
 // ######################## TURN ########################
-void turn(int grad, bool korrig) {
+void turn(int grad, int korrig) {
   mpu6050.update(); // Werte des Sensors aktualisieren
   signed short int cur_angle = mpu6050.getAngleZ(); // Winkel beim Starten der Funktion
   Serial.print("TURN INITIAL -");  Serial.println(cur_angle); // DEBUG ONLY
@@ -416,7 +416,7 @@ void turn(int grad, bool korrig) {
       // Motor 2 vorwärts
       digitalWrite(in3, LOW);
       digitalWrite(in4, HIGH);
-
+      gyro = 0;
       while (gyro == 0) {
         gyro = gyro_sensor(cur_angle, grad);
       }
@@ -443,6 +443,8 @@ void turn(int grad, bool korrig) {
       // Motor 2 aus
       digitalWrite(in3, LOW);
       digitalWrite(in4, LOW);
+
+      //    wartezeit(3000);
       // Motorengeschwindigkeit festlegen
       analogWrite(GSM1, motorvarR); // Rechter Motor
       analogWrite(GSM2, motorvarL); // Linker Motor
@@ -456,7 +458,8 @@ void turn(int grad, bool korrig) {
       Serial.println("Mot2 Rückwärts");
       digitalWrite(in3, HIGH);
       digitalWrite(in4, LOW);
-
+      //wartezeit(1000);
+      gyro = 0;
       while (gyro == 0) {
         gyro = gyro_sensor(cur_angle, grad);
       }
@@ -467,6 +470,7 @@ void turn(int grad, bool korrig) {
       // Motor 2 aus
       digitalWrite(in3, LOW);
       digitalWrite(in4, LOW);
+      //wartezeit(1000);
       // Motor 1 vorwärts
       digitalWrite(in1, HIGH);
       digitalWrite(in2, LOW);
