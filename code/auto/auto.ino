@@ -189,7 +189,7 @@ void loop()
     while (leftvar == 1) {
       digitalWrite(12, HIGH); // LED Rot an
       // Korrigieren
-      turn(20, 1); // 20°
+      turn(35, 1); // 20°
       digitalWrite(12, LOW); // LED Rot aus
       leftvar = 0;
     }
@@ -314,7 +314,7 @@ int ir_sensor(int sensornr) {
     for (int i = 0; i < repeat; i++)
     {
       distancetemp = analogRead(irtemp); // Entfernungswert des Sensors übergeben
-      sumtemp += distancetemp; // Entfernungswert zur Summe addieren
+      sumtemp = sumtemp + distancetemp; // Entfernungswert zur Summe addieren
       Serial.print("IR_SENS - Entfernung - "); // DEBUG ONLY
       Serial.println(sumtemp / i); // DEBUG ONLY
       wartezeit(ir_delay);
@@ -347,6 +347,14 @@ bool bumpers() {
       wartezeit(150);
       digitalWrite(12, LOW); // LED Rot aus
       wartezeit(150);
+
+// Motor 1 aus
+      digitalWrite(in1, LOW);
+      digitalWrite(in2, LOW);
+      // Motor 2 aus
+      digitalWrite(in3, LOW);
+      digitalWrite(in4, LOW);
+      
       return 1; // Gegengefahren
     }
   }
@@ -369,7 +377,7 @@ void turn(int grad, int korrig) {
       // Motor 2 rückwärts
       digitalWrite(in3, HIGH);
       digitalWrite(in4, LOW);
-      wartezeit(sec);
+      wartezeit(2000);
       // Motor 1 aus
       digitalWrite(in1, LOW);
       digitalWrite(in2, LOW);
@@ -398,27 +406,34 @@ void turn(int grad, int korrig) {
       wartezeit(500);
       break;
     case 1:
-      // LINKS SENSOR
-      Serial.println("Turn Linksssensor");
+      // Links SENSOR
+      Serial.println("Turn Rechtsssensor");
       // Motor 1 aus
       digitalWrite(in1, LOW);
       digitalWrite(in2, LOW);
       // Motor 2 aus
       digitalWrite(in3, LOW);
       digitalWrite(in4, LOW);
+
+      //    wartezeit(3000);
       // Motorengeschwindigkeit festlegen
       analogWrite(GSM1, motorvarR); // Rechter Motor
       analogWrite(GSM2, motorvarL); // Linker Motor
-      // Rechtsdrehung
-      // Motor 1 rückwärts
+
+      // Linksdrehung
+      // Motor 1 vorwärts
+      Serial.println("Mot1 Rückwärts");
       digitalWrite(in1, LOW);
       digitalWrite(in2, HIGH);
-      // Motor 2 vorwärts
+      // Motor 2 rückwärts
+      Serial.println("Mot2 Vorwärts");
       digitalWrite(in3, LOW);
       digitalWrite(in4, HIGH);
+      //wartezeit(1000);
       gyro = 0;
       while (gyro == 0) {
         gyro = gyro_sensor(cur_angle, grad);
+      Serial.println("Gyrorechtsdrehung..");  
       }
       // Anhalten
       // Motor 1 aus
@@ -427,6 +442,7 @@ void turn(int grad, int korrig) {
       // Motor 2 aus
       digitalWrite(in3, LOW);
       digitalWrite(in4, LOW);
+      //wartezeit(1000);
       // Motor 1 vorwärts
       digitalWrite(in1, HIGH);
       digitalWrite(in2, LOW);
@@ -462,6 +478,7 @@ void turn(int grad, int korrig) {
       gyro = 0;
       while (gyro == 0) {
         gyro = gyro_sensor(cur_angle, grad);
+      Serial.println("Gyrolinksdrehung..");  
       }
       // Anhalten
       // Motor 1 aus
