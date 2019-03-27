@@ -2,16 +2,14 @@
 #include <Wire.h> // Voraussetzung für Gyroskop 
 /*
    Autonomer Roboter "Gary"
-   Version 1.2
+   Version 1.3
    Made by:
    David Schmidt, Max Grüning, Steven Bolln, Pascal Harders
    Feb-Mar 2019
 
    TODO:
 
-  BUMPER
-  FIX LEFT TURNING
-  FIX linksdrall, vorne erkennt zuerst
+  fix wartezeit funktion
 
   Codecleanup
   Langsam stoppen um Getriebe/Motor zu schonen?
@@ -161,6 +159,7 @@ void setup()
 void loop()
 {
   int sensorvar = 0;
+  int sensorvar2 = 0;
   int leftvar = 0;
   int rightvar = 0;
 
@@ -177,7 +176,8 @@ void loop()
   digitalWrite(in3, LOW);
   digitalWrite(in4, HIGH);
 
-  while (sensorvar == 0) {
+  while ((sensorvar == 0) && (sensorvar2 == 0)) {
+    //while (sensorvar == 0) {
     sensorvar = ir_sensor(0); // Sensor 0 = Vorne
     Serial.print("SENSORVAR: ");
     Serial.println(sensorvar);
@@ -207,7 +207,11 @@ void loop()
     // setze motorgeschw zurück
     analogWrite(GSM1, motorvarR); // Rechter Motor
     analogWrite(GSM2, motorvarL); // Linker Motor
-    sensorvar = bumpers(); // Taster vorne überprüfen
+    sensorvar2 = bumpers(); // Taster vorne überprüfen
+
+    Serial.print("SENSORVAR2: ");
+    Serial.println(sensorvar2);
+
   }
   // Anhalten
   // Motor 1 aus
@@ -383,6 +387,9 @@ void turn(int grad, int korrig) {
   mpu6050.update(); // Werte des Sensors aktualisieren
   signed short int cur_angle = mpu6050.getAngleZ(); // Winkel beim Starten der Funktion
   Serial.print("TURN INITIAL -");  Serial.println(cur_angle); // DEBUG ONLY
+  // Motorengeschwindigkeit festlegen
+  analogWrite(GSM1, motorvarR); // Rechter Motor
+  analogWrite(GSM2, motorvarL); // Linker Motor
   switch (korrig)
   {
     case 0:
@@ -392,7 +399,8 @@ void turn(int grad, int korrig) {
       // Motor 2 rückwärts
       digitalWrite(in3, HIGH);
       digitalWrite(in4, LOW);
-      wartezeit(2000);
+      delay(2000);
+      wartezeit(2000); // <- DAS IST DER FEHLER
       // Motor 1 aus
       digitalWrite(in1, LOW);
       digitalWrite(in2, LOW);
