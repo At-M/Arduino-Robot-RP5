@@ -2,16 +2,14 @@
 #include <Wire.h> // Voraussetzung für Gyroskop 
 /*
    Autonomer Roboter "Gary"
-   Version 1.2
+   Version 1.3
    Made by:
    David Schmidt, Max Grüning, Steven Bolln, Pascal Harders
    Feb-Mar 2019
 
    TODO:
 
-  BUMPER
-  FIX LEFT TURNING
-  FIX linksdrall, vorne erkennt zuerst
+  fix wartezeit funktion
 
   Codecleanup
   Langsam stoppen um Getriebe/Motor zu schonen?
