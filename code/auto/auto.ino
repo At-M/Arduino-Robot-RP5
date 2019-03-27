@@ -401,7 +401,8 @@ void turn(int grad, int korrig) {
       // Motor 2 rückwärts
       digitalWrite(in3, HIGH);
       digitalWrite(in4, LOW);
-      wartezeit(2000);
+      delay(2000);
+      wartezeit(2000); // <- DAS IST DER FEHLER
       // Motor 1 aus
       digitalWrite(in1, LOW);
       digitalWrite(in2, LOW);
