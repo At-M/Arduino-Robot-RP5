@@ -178,7 +178,8 @@ void loop()
   digitalWrite(in3, LOW);
   digitalWrite(in4, HIGH);
 
-  while ((sensorvar == 0)&&(sensorvar2 == 0)) {
+  while ((sensorvar == 0) && (sensorvar2 == 0)) {
+    //while (sensorvar == 0) {
     sensorvar = ir_sensor(0); // Sensor 0 = Vorne
     Serial.print("SENSORVAR: ");
     Serial.println(sensorvar);
@@ -209,6 +210,10 @@ void loop()
     analogWrite(GSM1, motorvarR); // Rechter Motor
     analogWrite(GSM2, motorvarL); // Linker Motor
     sensorvar2 = bumpers(); // Taster vorne überprüfen
+
+    Serial.print("SENSORVAR2: ");
+    Serial.println(sensorvar2);
+
   }
   // Anhalten
   // Motor 1 aus
@@ -384,6 +389,9 @@ void turn(int grad, int korrig) {
   mpu6050.update(); // Werte des Sensors aktualisieren
   signed short int cur_angle = mpu6050.getAngleZ(); // Winkel beim Starten der Funktion
   Serial.print("TURN INITIAL -");  Serial.println(cur_angle); // DEBUG ONLY
+  // Motorengeschwindigkeit festlegen
+  analogWrite(GSM1, motorvarR); // Rechter Motor
+  analogWrite(GSM2, motorvarL); // Linker Motor
   switch (korrig)
   {
     case 0:
