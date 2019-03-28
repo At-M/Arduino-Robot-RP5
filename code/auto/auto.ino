@@ -163,6 +163,9 @@ void loop()
   int leftvar = 0;
   int rightvar = 0;
 
+  int drehungszahllinks = 0;
+  int drehungszahlrechts = 0;
+
   // Motorengeschwindigkeit festlegen
   analogWrite(GSM1, motorvarR); // Rechter Motor
   analogWrite(GSM2, motorvarL); // Linker Motor
@@ -187,21 +190,33 @@ void loop()
     leftvar = ir_sensor(1);
     // wenn entfernung links zu gering
     while (leftvar == 1) {
-      digitalWrite(12, HIGH); // LED Rot an
-      // Korrigieren
-      turn(35, 1); // 20°
-      digitalWrite(12, LOW); // LED Rot aus
-      leftvar = 0;
+      if (drehungszahllinks < 2) {
+        digitalWrite(12, HIGH); // LED Rot an
+        // Korrigieren
+        turn(25, 1); // 20°
+        digitalWrite(12, LOW); // LED Rot aus
+        drehungszahllinks++;
+        leftvar = 0;
+      }
+      else {
+        // nothing
+      }
     }
     // Checke entfernung rechts
     rightvar = ir_sensor(2);
     // wenn entfernung rechts zu gering
     while (rightvar == 1) {
-      digitalWrite(11, HIGH); // LED Grün an
-      // Korrigieren
-      turn(-35, 2); // -20°
-      digitalWrite(11, LOW); // LED Grün aus
-      rightvar = 0;
+      if (drehungszahlrechts < 2) {
+        digitalWrite(11, HIGH); // LED Grün an
+        // Korrigieren
+        turn(-35, 2); // -20°
+        digitalWrite(11, LOW); // LED Grün aus
+        drehungszahlrechts++;
+        rightvar = 0;
+      }
+      else {
+        // nothing
+      }
     }
     // wenn entfernung groß genug
     // setze motorgeschw zurück
@@ -237,6 +252,8 @@ void loop()
       digitalWrite(11, LOW); //LED Grün aus
       Serial.println("Gradcounter nachher 90:"); // DEBUG ONLY
       Serial.println(gradcounter); // DEBUG ONLY
+      drehungszahlrechts = 0;
+      drehungszahllinks = 0;
       break;
     case 1:
       // 180 Grad drehen
@@ -251,6 +268,8 @@ void loop()
       digitalWrite(12, LOW); // LED Rot aus
       Serial.println("Gradcounter nachher 180:"); // DEBUG ONLY
       Serial.println(gradcounter); // DEBUG ONLY
+      drehungszahlrechts = 0;
+      drehungszahllinks = 0;
       break;
     default:
       // keine Reaktion
