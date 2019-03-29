@@ -363,11 +363,6 @@ bool bumpers() {
   if (value == 0) {
     Serial.println("BUMP - Gegengefahren"); // DEBUG ONLY
     for (i = 0; i < 10; i++) {
-      digitalWrite(12, HIGH); // LED Rot ein
-      wartezeit(150);
-      digitalWrite(12, LOW); // LED Rot aus
-      wartezeit(150);
-
       // Motor 1 aus
       digitalWrite(in1, LOW);
       digitalWrite(in2, LOW);
@@ -439,12 +434,11 @@ void turn(int grad, int korrig) {
       digitalWrite(in3, LOW);
       digitalWrite(in4, LOW);
 
-      //    wartezeit(3000);
       // Motorengeschwindigkeit festlegen
       analogWrite(GSM1, motorvarR); // Rechter Motor
       analogWrite(GSM2, motorvarL); // Linker Motor
 
-      // Linksdrehung
+      // Rechtsdrehung
       // Motor 1 vorwärts
       Serial.println("Mot1 Rückwärts");
       digitalWrite(in1, LOW);
@@ -453,7 +447,6 @@ void turn(int grad, int korrig) {
       Serial.println("Mot2 Vorwärts");
       digitalWrite(in3, LOW);
       digitalWrite(in4, HIGH);
-      //wartezeit(1000);
       gyro = 0;
       while (gyro == 0) {
         gyro = gyro_sensor(cur_angle, grad);
@@ -466,7 +459,6 @@ void turn(int grad, int korrig) {
       // Motor 2 aus
       digitalWrite(in3, LOW);
       digitalWrite(in4, LOW);
-      //wartezeit(1000);
       // Motor 1 vorwärts
       digitalWrite(in1, HIGH);
       digitalWrite(in2, LOW);
@@ -484,7 +476,6 @@ void turn(int grad, int korrig) {
       digitalWrite(in3, LOW);
       digitalWrite(in4, LOW);
 
-      //    wartezeit(3000);
       // Motorengeschwindigkeit festlegen
       analogWrite(GSM1, motorvarR); // Rechter Motor
       analogWrite(GSM2, motorvarL); // Linker Motor
@@ -498,7 +489,6 @@ void turn(int grad, int korrig) {
       Serial.println("Mot2 Rückwärts");
       digitalWrite(in3, HIGH);
       digitalWrite(in4, LOW);
-      //wartezeit(1000);
       gyro = 0;
       while (gyro == 0) {
         gyro = gyro_sensor(cur_angle, grad);
@@ -511,7 +501,7 @@ void turn(int grad, int korrig) {
       // Motor 2 aus
       digitalWrite(in3, LOW);
       digitalWrite(in4, LOW);
-      //wartezeit(1000);
+      
       // Motor 1 vorwärts
       digitalWrite(in1, HIGH);
       digitalWrite(in2, LOW);
