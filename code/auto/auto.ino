@@ -19,9 +19,11 @@
   Ein (während Linksdrehung): Entfernung rechts zu gering
   Ein (während Rechtsdrehung): 90° Drehung
 
+  Für Informationen über fehlende oder defekte Funktionen bitte die Fehlerliste zu Rate nehmen.
+
   (Kauf-)Quellen:
 
-  Infrarot (KY-032, schnelle Bewegungserkennung):
+  Infrarot (KY-032, schnelle Bewegungserkennung) - Mittlerweile nichtmehr vorhanden:
   http://sensorkit.joy-it.net/index.php?title=KY-032_Hindernis_Detektor_Modul
   https://www.amazon.de/gp/product/B07CN8F14V
 
@@ -33,21 +35,21 @@
   https://www.researchgate.net/post/Who_have_used_the_Arduino_and_mpu6050_Can_you_tell_me_how_to_set_the_sample_rate_for_mpu6050 (Abtastgeschwindigkeit)
   https://www.luis.uni-hannover.de/fileadmin/kurse/material/CKurs/list_Operatoren.pdf (signed short int)
 
-  Ultraschall (HC-SR04, Entfernungsmessung):
+  Ultraschall (HC-SR04, Entfernungsmessung)- Mittlerweile nichtmehr vorhanden:
   https://playground.arduino.cc/Code/NewPing
   https://www.amazon.de/gp/product/B00R2U8HK6
 
   Endschalter:
   https://www.amazon.de/gp/product/B0744HCY6G
 
-  OR-Gate für Endschalter (unbenutzt!)
+  OR-Gate für Endschalter - Mittlerweile nichtmehr vorhanden:
   https://www.ebay.de/itm/5x-CMOS-4071-OR-Gatter-4-fach-2-Eingänge-C-MOS-IC-DIP14/311014657148
 
   NAND-Gate für Endschalter:
   https://www.ebay.de/itm/CD4093BE-CMOS-Quad-2-Input-NAND-Schmitt-Triggers-HLF-DIP-14-1-oder-2-St%C3%BCck/172410722963?ssPageName=STRK%3AMEBIDX%3AIT&var=471240518309&_trksid=p2057872.m2749.l2649
   https://www.petervis.com/GCSE_Design_and_Technology_Electronic_Products/nand-gate-timers/nand-gate-timer-delay-on/cd4093b-pinout.gif
 
-  Halterung Ultraschallsensor:
+  Halterung Ultraschallsensor - mittlerweile Modifiziert:
   https://www.thingiverse.com/thing:189585
 
   Abdeckung Getriebe:
@@ -88,14 +90,14 @@ byte bumpPin1 = 3; // Vorne
 // Zeitrelevant
 const unsigned short sec = 1000;  // Dauer von 1 Sekunde
 
-// Funktionsprototypen
+// ## Funktionsprototypen ##
 
 // Sensorfunktionen
-int ir_sensor(int); // Input: Sensornummer | Rückgabe: Integer
-bool gyro_sensor(signed short int angle, int grad); // Input: Aktueller Winkel, zu Drehende Gradzahl | Rückgabe: Bool
+int ir_sensor(int); // Input: Sensornummer | Rückgabe: Entfernung zu gering (1) o. Entfernung OK (0)
+bool gyro_sensor(signed short int angle, int grad); // Input: Aktueller Winkel, zu Drehende Gradzahl | Rückgabe: Drehung abgeschlossen (1) o. nicht(0)
 
 // Tasterfunktion
-bool bumpers(); // Input: Nichts | Rückgabe: Gedrückt o. Ungedrückt
+bool bumpers(); // Input: Nichts | Rückgabe: Gedrückt (1) o. Ungedrückt (0)
 
 // Drehfunktion
 void turn(int, int); // Input: Gradzahl, Korrigieren o. Drehung | Rückgabe: Nichts
@@ -163,7 +165,7 @@ void loop()
 
     // Checke Entfernung links
     leftvar = ir_sensor(1);
-    
+
     // Wenn Entfernung links zu gering
     while (leftvar == 1) {
       digitalWrite(12, HIGH); // LED Rot ein
@@ -172,6 +174,7 @@ void loop()
       digitalWrite(12, LOW); // LED Rot aus
       leftvar = 0;
     }
+
     // Checke Entfernung rechts
     rightvar = ir_sensor(2);
     // Wenn Entfernung rechts zu gering
@@ -182,12 +185,13 @@ void loop()
       digitalWrite(11, LOW); // LED Grün aus
       rightvar = 0;
     }
-    // wenn entfernung groß genug
-    // setze motorgeschw zurück
+    // Wenn Entfernung groß genug
+    // Setze Motorgeschw. zurück
     analogWrite(GSM1, motorvarR); // Rechter Motor
     analogWrite(GSM2, motorvarL); // Linker Motor
     sensorvar2 = bumpers(); // Taster vorne überprüfen
   }
+
   // Anhalten
   // Motor 1 aus
   digitalWrite(in1, LOW);
@@ -197,9 +201,9 @@ void loop()
   digitalWrite(in4, LOW);
 
   wartezeit(50);
+
   // Unterscheiden zwischen 90° und 180° Drehung
   // Winkel sind nicht akkurat, dswg. ist 90° im "echten Leben" hier fast das doppelte
-
   switch (gradcounter) {
     case 0:
       // 90 grad drehen
@@ -219,7 +223,7 @@ void loop()
       turn(320, 0); // 180° -> 360-320
 
       gradcounter--; // Drehvariable auf 0 setzen (1 subtrahieren)
-      digitalWrite(11, LOW); // LED Grün ein
+      digitalWrite(11, LOW); // LED Grün aus
       digitalWrite(12, LOW); // LED Rot aus
       break;
     default:
@@ -238,12 +242,14 @@ int ir_sensor(int sensornr) {
 
   int entfrange = 70; // Entfernungsbereich für Auslesungen
 
+  // "Auswahl" des Sensors
   switch (sensornr)
   {
     // Vorne
     case 0:
       irtemp = ir1;
-      entfrange = 50; // Vorne weniger sensibel, da sonst Wand zuerst von vorne erkannt
+      // Vorne weniger sensibel, da sonst bei linksdrall Wand zuerst von vorne erkannt, statt von der Seite
+      entfrange = 50;
       break;
     // Links
     case 1:
@@ -282,13 +288,14 @@ int ir_sensor(int sensornr) {
     {
       distancetemp = analogRead(irtemp); // Entfernungswert des Sensors übergeben
       sumtemp = sumtemp + distancetemp; // Entfernungswert zur Summe addieren
+      // Fehlereinlesungen umgehen
       if ((distancetemp == 0) || (distancetemp == -1)) {
         distancetemp = 100;
       }
       wartezeit(ir_delay);
     }
     sumtemp = sumtemp / repeat; // Mittelwert ausrechnen
-    sumtemp = sumtemp + 50; // DEBUG TEST
+    sumtemp = sumtemp + 50; // Kleine Fehler umgehen
 
     // Wenn der Mittelwert kleiner als die ir_entf ist.. (Invertierte logik!)
     if (sumtemp > ir_entf)
@@ -304,9 +311,11 @@ int ir_sensor(int sensornr) {
 }
 // ######################## BUMPER ########################
 bool bumpers() {
-  int value = digitalRead(bumpPin1);
+  int value = digitalRead(bumpPin1); // "Auslesen" der Bumper
   int i = 0;
+
   if (value == 0) {
+
     // Gegengefahren
     for (i = 0; i < 10; i++) {
       // Motor 1 aus
@@ -315,7 +324,6 @@ bool bumpers() {
       // Motor 2 aus
       digitalWrite(in3, LOW);
       digitalWrite(in4, LOW);
-
       return 1;
     }
   }
@@ -329,9 +337,11 @@ void turn(int grad, int korrig) {
   mpu6050.update(); // Werte des Sensors aktualisieren
   signed short int cur_angle = mpu6050.getAngleZ(); // Winkel beim Starten der Funktion
 
-  // Motorengeschwindigkeit festlegen
+  // Motorengesch. festlegen
   analogWrite(GSM1, motorvarR); // Rechter Motor
   analogWrite(GSM2, motorvarL); // Linker Motor
+
+  // Auswahl ob Korrektur oder "geplante" Drehung
   switch (korrig)
   {
     case 0:
@@ -344,8 +354,8 @@ void turn(int grad, int korrig) {
 
       delay(2000); // "Fahre für 2 Sekunden"
 
-      // Wartezeitfunktion spontan seit der Abnahme defekt, dswg delay darüber.
-      // Bei anderen Funktionen ist kein wirklicher Unterschied ohne wartezeit erkennbar, dswg. wurde es dort weggelassen
+      // Wartezeitfunktion spontan kurz vor der Abnahme funktionslos, dswg stattdessen delay darüber.
+      // Bei anderen Funktionen ist kein wirklicher Unterschied ohne wartezeit() erkennbar, dswg. wurde es dort weggelassen
       //wartezeit(2000);
 
       // Motor 1 aus
@@ -364,6 +374,7 @@ void turn(int grad, int korrig) {
       digitalWrite(in4, HIGH);
 
       gyro = 0;
+      // Solange (laut Gyroskop) die Drehung noch nicht abgeschlossen ist
       while (gyro == 0) {
         gyro = gyro_sensor(cur_angle, grad);
       }
@@ -387,7 +398,7 @@ void turn(int grad, int korrig) {
       digitalWrite(in3, LOW);
       digitalWrite(in4, LOW);
 
-      // Motorengeschwindigkeit festlegen
+      // Motorengeschw. festlegen
       analogWrite(GSM1, motorvarR); // Rechter Motor
       analogWrite(GSM2, motorvarL); // Linker Motor
 
@@ -400,6 +411,7 @@ void turn(int grad, int korrig) {
       digitalWrite(in4, HIGH);
 
       gyro = 0;
+      // Solange (laut Gyroskop) die Drehung noch nicht abgeschlossen ist
       while (gyro == 0) {
         gyro = gyro_sensor(cur_angle, grad);
       }
@@ -439,6 +451,7 @@ void turn(int grad, int korrig) {
       digitalWrite(in4, LOW);
 
       gyro = 0;
+      // Solange (laut Gyroskop) die Drehung noch nicht abgeschlossen ist
       while (gyro == 0) {
         gyro = gyro_sensor(cur_angle, grad);
       }
@@ -471,7 +484,8 @@ bool gyro_sensor(signed short int angle, int grad) {
   signed short int cur_angle = angle; // Aktueller Wert
 
   if (grad < 0) {
-    // Linksdrehung
+
+    // Linksdrehung (lässt den Gyroskop negative Werte ausgeben)
     // Warte, bis das Gyroskop eine vollständige X° Drehung erfasst hat (<-180)
     while (cur_angle <= angle + grad) {
       mpu6050.update(); // Werte des Sensors aktualisieren
@@ -480,7 +494,7 @@ bool gyro_sensor(signed short int angle, int grad) {
     }
   }
   else {
-    // Rechtsdrehung
+    // Rechtsdrehung (lässt den Gyroskop positive Werte ausgeben)
     // Warte, bis das Gyroskop eine vollständige X° Drehung erfasst hat (<-180)
     while (cur_angle >= angle - grad) {
       mpu6050.update(); // Werte des Sensors aktualisieren
