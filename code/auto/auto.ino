@@ -1,8 +1,8 @@
 #include <MPU6050_tockn.h> // Bibliothek für Gyroskop
 #include <Wire.h> // Voraussetzung für Gyroskop 
 /*
-   Autonomer Roboter "Gary"
-   Version 1.3
+   Autonomes Kettenfahrzeug "Larry"
+   Version 1.4
    Made by:
    David Schmidt, Max Grüning, Steven Bolln, Pascal Harders
    Feb-Mar 2019
@@ -18,8 +18,6 @@
 
   Ein (während Linksdrehung): Entfernung rechts zu gering
   Ein (während Rechtsdrehung): 90° Drehung
-
-  Für Informationen über fehlende oder defekte Funktionen bitte die Fehlerliste zu Rate nehmen.
 
   (Kauf-)Quellen:
 
