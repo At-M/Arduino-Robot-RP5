@@ -190,7 +190,7 @@ void loop()
     while (leftvar == 1) {
       digitalWrite(12, HIGH); // LED Rot an
       // Korrigieren
-      turn(25, 1); // 20°
+      turn(25, 1); // 25°
       digitalWrite(12, LOW); // LED Rot aus
       leftvar = 0;
     }
@@ -200,7 +200,7 @@ void loop()
     while (rightvar == 1) {
       digitalWrite(11, HIGH); // LED Grün an
       // Korrigieren
-      turn(-35, 2); // -20°
+      turn(-35, 2); // -35°
       digitalWrite(11, LOW); // LED Grün aus
       rightvar = 0;
     }
@@ -224,6 +224,7 @@ void loop()
 
   wartezeit(50);
   // Unterscheiden zwischen 90° und 180° Drehung
+  // Winkel sind nicht akkurat, dswg. ist 90° im "echten Leben" hier fast das doppelte
 
   switch (gradcounter) {
     case 0:
@@ -269,7 +270,6 @@ int ir_sensor(int sensornr) {
 
   int entfrange = 70; // Entfernungsbereich für Auslesungen
 
-
   switch (sensornr)
   {
     // Vorne
@@ -309,7 +309,7 @@ int ir_sensor(int sensornr) {
     wartezeit(ir_delay);
   }
   sumtemp = sumtemp / repeat; // Mittelwert ausrechnen
-  //Entfernung < 20cm +- X? (Invertierte logik!)
+  //Entfernung < ca. 20cm +- X? (Invertierte logik!)
   if ((ir_entf - entfrange < sumtemp) && (ir_entf + entfrange > sumtemp))
   {
     sumtemp = 0; // Summe für nächste Berechnung zurücksetzen
@@ -401,7 +401,7 @@ void turn(int grad, int korrig) {
       digitalWrite(in3, HIGH);
       digitalWrite(in4, LOW);
       delay(2000);
-      wartezeit(2000); // <- DAS IST DER FEHLER
+      wartezeit(2000); // Wartezeitfunktion spontan defekt, dswg delay darüber
       // Motor 1 aus
       digitalWrite(in1, LOW);
       digitalWrite(in2, LOW);
