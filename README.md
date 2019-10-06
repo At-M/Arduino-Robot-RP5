@@ -25,12 +25,12 @@ Images may follow.
 
  ## Module sources:
 
-  Infrared Sharp (GP2Y0A21YK0F, distance sensor):
+  **Infrared Sharp (GP2Y0A21YK0F, distance sensor)**
   
   [eBay (Germany)](https://www.ebay.de/itm/Sharp-IR-Sensor-GP2Y0A21YK0F-Distanzsensor-Kabel-Arduino-Infrarot-Raspberry-Pi/253638031006)
   
 
-  Gyroscope(MPU6050, angle measuring):
+  **Gyroscope(MPU6050, angle measuring)**
   
   [Library](https://github.com/tockn/MPU6050_tockn)
   
@@ -39,23 +39,23 @@ Images may follow.
   [Why signed short int?](https://www.luis.uni-hannover.de/fileadmin/kurse/material/CKurs/list_Operatoren.pdf)
 
   
-  Endstops:
+  **Endstops**
   
   [Amazon (Germany)](https://www.amazon.de/gp/product/B0744HCY6G)
 
   
-  NAND-Gate for endstops:
+  **NAND-Gate for endstops:**
   
-  [eBay (Germany)]https://www.ebay.de/itm/CD4093BE-CMOS-Quad-2-Input-NAND-Schmitt-Triggers-HLF-DIP-14-1-oder-2-St%C3%BCck/172410722963?ssPageName=STRK%3AMEBIDX%3AIT&var=471240518309&_trksid=p2057872.m2749.l2649
+  [eBay (Germany)](https://www.ebay.de/itm/CD4093BE-CMOS-Quad-2-Input-NAND-Schmitt-Triggers-HLF-DIP-14-1-oder-2-St%C3%BCck/172410722963?ssPageName=STRK%3AMEBIDX%3AIT&var=471240518309&_trksid=p2057872.m2749.l2649)
   
   [Pinout](https://www.petervis.com/GCSE_Design_and_Technology_Electronic_Products/nand-gate-timers/nand-gate-timer-delay-on/cd4093b-pinout.gif)
 
   
-  Bracket for Ultrasonic sensor (I modified this one):
+  **Bracket for Ultrasonic sensor (I modified this one)**
   
   [Thingiverse](https://www.thingiverse.com/thing:189585)
 
   
-  Gearbox cover:
+  **Gearbox cover**
   
   [Thingiverse](https://www.thingiverse.com/thing:2985540)
