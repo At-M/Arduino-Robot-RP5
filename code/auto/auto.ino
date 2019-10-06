@@ -12,7 +12,8 @@
   Values for motorspeeds may change depending on the smoothness of your floor, I'm leaving my default values in, which were on PVC floor
   Rright or left motor may swap, depending on your wiring
   Errorcodes (for debugging)
-  
+  To find out the needed value for ir_dist, build a loop which prints the received value from the sensor into serial monitor, move your robot at the desired distance from the wall, use that value (or a median of the last few printed)
+
   LED Red:
 
   ON (during unplanned right turn): distance on the left is not enough
@@ -49,12 +50,12 @@
 */
 
 // DC Motor 1 (right side)
-byte GSM1 = 10;
+byte DCM1 = 10;
 byte in1 = 9;
 byte in2 = 8;
 
 // DC Motor 2 (left side)
-byte GSM2 = 5;
+byte DCM2 = 5;
 byte in3 = 7;
 byte in4 = 6;
 
@@ -62,8 +63,8 @@ byte in4 = 6;
 int motorvarR = 160; // right motor (160)
 int motorvarL = 215; // left motor (210/207)
 
-// Sharp infraredsensors , ir_entf may vary depending on your wallcolor
-int ir_entf = 209;  // 209
+// Sharp infraredsensors , ir_dist may vary depending on your wallcolor
+int ir_dist = 209;  // Value shown by sensor (if printed in serial monitor) (209)
 byte ir1 = 14; // Sharp IR sensor on the front
 byte ir2 = 15; // Sharp IR sensor on the left
 byte ir3 = 17; // Sharp IR sensor on the right
@@ -71,11 +72,11 @@ int ir_delay = 50; // Waiting time between the readout attempts of the IRSensor
 
 // Gyroscope
 MPU6050 mpu6050(Wire); // Gyro is works with the Wire library
-int gradcounter = 0; // Variable while turning
+int degreecounter = 0; // Variable while turning
 bool gyro = 0; // Return of the function gyro_sensor
 int gyro_delay = 50; // Waiting time between the readout attempts of the gyroscope
 
-// Endstops / Bumper (Failsafe, normally not used)
+// Endstops / bumper (Failsafe, normally not used)
 byte bumpPin1 = 3; // front
 
 // Time relevant
@@ -85,7 +86,7 @@ const unsigned short sec = 1000;  // 1 second
 
 // Sensorfunctions
 int ir_sensor(int); // Input: sensor number | Return: distance too small (1) or distance OK (0)
-bool gyro_sensor(signed short int angle, int grad); // Input: Current angle, number of degrees to rotate | Return: Rotation completed (1) or not(0)
+bool gyro_sensor(signed short int angle, int degree); // Input: Current angle, number of degrees to rotate | Return: Rotation completed (1) or not(0)
 
 // Endstopfunction
 bool bumpers(); // Input: Nothing | Return: pressed (1) or unpressed (0)
@@ -94,7 +95,7 @@ bool bumpers(); // Input: Nothing | Return: pressed (1) or unpressed (0)
 void turn(int, int); // Input: Number of degrees, correction without rotation | Return: Nothing
 
 // Wait function (replacement for delay();)
-void wartezeit(unsigned short); // Input: Duration | Return: Nothing
+void wait(unsigned short); // Input: Duration | Return: Nothing
 
 // ######################## SETUP ########################
 // runs once
@@ -103,9 +104,9 @@ void setup()
   Serial.begin(9600); // Starts the serial interface
   Serial.println("##PROGRAMMSTART##");
 
-  // Festlegung der Pins
-  pinMode(GSM1, OUTPUT); // DC motor 1
-  pinMode(GSM2, OUTPUT); // DC motor 2
+  // Pin-definition
+  pinMode(DCM1, OUTPUT); // DC motor 1
+  pinMode(DCM2, OUTPUT); // DC motor 2
 
   pinMode(in1, OUTPUT); // DC motor 1 input1
   pinMode(in2, OUTPUT); // DCM1 input2
@@ -113,7 +114,7 @@ void setup()
   pinMode(in3, OUTPUT); // DCM2 input1
   pinMode(in4, OUTPUT); // DCM2 input2
 
-  pinMode(bumpPin1, INPUT_PULLUP); // endstop 1, for safety's sake incl. pullup
+  pinMode(bumpPin1, INPUT_PULLUP); // endstop 1, for safety's sake including pullup
 
   pinMode (ir1, INPUT); // Sharp IR sensor on the front
   pinMode (ir2, INPUT); // Sharp IR sensor on the left
@@ -121,8 +122,8 @@ void setup()
 
   // GYROSCOPE
   Serial.println("##GYRO...##");
-  Wire.begin(); // Initialization of the Wire Library
-  mpu6050.begin(); // Initialization of the Gyroscope Library
+  Wire.begin(); // Initialization of the Wire library
+  mpu6050.begin(); // Initialization of the Gyroscope library
   mpu6050.calcGyroOffsets(true); // The gyroscope is to be calibrated.
   Serial.println("\n##CALIBRATED!##");
 
@@ -137,8 +138,8 @@ void loop()
   int rightvar = 0;
 
   // Define motor speed
-  analogWrite(GSM1, motorvarR); // right motor
-  analogWrite(GSM2, motorvarL); // left motor
+  analogWrite(DCM1, motorvarR); // right motor
+  analogWrite(DCM2, motorvarL); // left motor
 
   Serial.println("##LOOPSTART##");
 
@@ -178,8 +179,8 @@ void loop()
     }
     // If distance is large enough
     // Reset engine speed
-    analogWrite(GSM1, motorvarR); // right motor
-    analogWrite(GSM2, motorvarL); // left motor
+    analogWrite(DCM1, motorvarR); // right motor
+    analogWrite(DCM2, motorvarL); // left motor
     sensorvar2 = bumpers(); // Check front endstop
   }
 
@@ -191,11 +192,11 @@ void loop()
   digitalWrite(in3, LOW);
   digitalWrite(in4, LOW);
 
-  wartezeit(50);
+  wait(50);
 
   // Differentiate between 90° and 180° rotation
-  // Angles don't seem to be accurate on our sensor, so 90° in code is different than 90° in "reallife"
-  switch (gradcounter) {
+  // Angles don't seem to be accurate on our sensor, so 90° in code is different than 90° in reality
+  switch (degreecounter) {
     case 0:
       // turn 90 degrees
       digitalWrite(11, HIGH); // LED green on
@@ -203,7 +204,7 @@ void loop()
 
       turn(170, 0); // 90° -> 170
 
-      gradcounter++; // Set turn variable to 1 (add 1)
+      degreecounter++; // Set turn variable to 1 (add 1)
       digitalWrite(11, LOW); //LED green off
       break;
     case 1:
@@ -213,7 +214,7 @@ void loop()
 
       turn(320, 0); // 180° -> 360-320
 
-      gradcounter--; // set turn variable to 0 (subtract 1)
+      degreecounter--; // set turn variable to 0 (subtract 1)
       digitalWrite(11, LOW); // LED green off
       digitalWrite(12, LOW); // LED red off
       break;
@@ -263,14 +264,14 @@ int ir_sensor(int sensornr) {
   // Multiple distance readings
   for (int i = 0; i < repeat; i++)
   {
-    // read distance
+    // Read distance
     distancetemp = analogRead(irtemp); // Transfer distance value of the sensor
     sumtemp += distancetemp; // Add distance value to total
-    wartezeit(ir_delay);
+    wait(ir_delay);
   }
   sumtemp = sumtemp / repeat; // Calculate mean value
   //distance < ca. 20cm +- X? (Inverted logic!)
-  if ((ir_entf - entfrange < sumtemp) && (ir_entf + entfrange > sumtemp))
+  if ((ir_dist - entfrange < sumtemp) && (ir_dist + entfrange > sumtemp))
   {
     sumtemp = 0; // Reset total for next calculation
     distancetemp = analogRead(irtemp); // Transfer distance value of the sensor
@@ -283,13 +284,13 @@ int ir_sensor(int sensornr) {
       if ((distancetemp == 0) || (distancetemp == -1)) {
         distancetemp = 100;
       }
-      wartezeit(ir_delay);
+      wait(ir_delay);
     }
     sumtemp = sumtemp / repeat; // Calculate mean value
     sumtemp = sumtemp + 50; // Bypass small sensor errors
 
-    // If the mean value is smaller than the ir_entf... (Inverted logic!)
-    if (sumtemp > ir_entf)
+    // If the mean value is smaller than the ir_dist... (Inverted logic!)
+    if (sumtemp > ir_dist)
     {
       // Distance too close
       return 1;
@@ -301,7 +302,7 @@ int ir_sensor(int sensornr) {
   }
 }
 // ######################## BUMPER ########################
-bool bumpers() {
+ bool bumpers() {
   int value = digitalRead(bumpPin1); // Reading the endstops
   int i = 0;
 
@@ -324,16 +325,16 @@ bool bumpers() {
   }
 }
 // ######################## TURN ########################
-void turn(int grad, int korrig) {
+void turn(int degree, int correct) {
   mpu6050.update(); // Update sensor values
   signed short int cur_angle = mpu6050.getAngleZ(); // Angle when starting the function
 
   // Define engine speed
-  analogWrite(GSM1, motorvarR); // Right motor
-  analogWrite(GSM2, motorvarL); // Left motor
+  analogWrite(DCM1, motorvarR); // Right motor
+  analogWrite(DCM2, motorvarL); // Left motor
 
   // Selection whether correction or "planned" rotation
-  switch (korrig)
+  switch (correct)
   {
     case 0:
       // Motor 1 backwards
@@ -345,10 +346,10 @@ void turn(int grad, int korrig) {
 
       delay(2000); // "Drive for 2 seconds"
 
-      // Waiting time function spontaneously functionless shortly before deadline, therefore delay() above, instead. 
+      // Waiting time function spontaneously functionless shortly before deadline, therefore delay() above, instead.
       // Might fix this somewhen
       // For other functions there is no real difference without waiting time(), so it was omitted there
-      //wartezeit(2000);
+      //wait(2000);
 
       // Motor 1 off
       digitalWrite(in1, LOW);
@@ -368,7 +369,7 @@ void turn(int grad, int korrig) {
       gyro = 0;
       // As long as (according to the gyroscope) the rotation is not yet complete
       while (gyro == 0) {
-        gyro = gyro_sensor(cur_angle, grad);
+        gyro = gyro_sensor(cur_angle, degree);
       }
 
       // Stop
@@ -379,7 +380,7 @@ void turn(int grad, int korrig) {
       digitalWrite(in3, LOW);
       digitalWrite(in4, LOW);
 
-      wartezeit(500);
+      wait(500);
       break;
     case 1:
       // Left Sensor
@@ -391,8 +392,8 @@ void turn(int grad, int korrig) {
       digitalWrite(in4, LOW);
 
       // Set motor speed
-      analogWrite(GSM1, motorvarR); // Right motor
-      analogWrite(GSM2, motorvarL); // Left motor
+      analogWrite(DCM1, motorvarR); // Right motor
+      analogWrite(DCM2, motorvarL); // Left motor
 
       // Clockwise rotation
       // Motor 1 vforwards
@@ -405,7 +406,7 @@ void turn(int grad, int korrig) {
       gyro = 0;
       // As long as (according to the gyroscope) the rotation is not yet complete
       while (gyro == 0) {
-        gyro = gyro_sensor(cur_angle, grad);
+        gyro = gyro_sensor(cur_angle, degree);
       }
       // Stop
       // Motor 1 off
@@ -431,8 +432,8 @@ void turn(int grad, int korrig) {
       digitalWrite(in4, LOW);
 
       // Set motor speed
-      analogWrite(GSM1, motorvarR); // Right motor
-      analogWrite(GSM2, motorvarL); // Left motor
+      analogWrite(DCM1, motorvarR); // Right motor
+      analogWrite(DCM2, motorvarL); // Left motor
 
       // Counter-clockwise turn
       // Motor 1 forwards
@@ -445,7 +446,7 @@ void turn(int grad, int korrig) {
       gyro = 0;
       // As long as (according to the gyroscope) the rotation is not yet complete
       while (gyro == 0) {
-        gyro = gyro_sensor(cur_angle, grad);
+        gyro = gyro_sensor(cur_angle, degree);
       }
       // Stop
       // Motor 1 off
@@ -470,41 +471,41 @@ void turn(int grad, int korrig) {
 }
 // ######################## GYRO ########################
 // Check if rotation is complete, if yes return "1"
-bool gyro_sensor(signed short int angle, int grad) {
+bool gyro_sensor(signed short int angle, int degree) {
   // Angle = Angle when starting the function
-  // Grad = Angle to be achieved (number of degrees)
+  // degree = Angle to be achieved (number of degrees)
   signed short int cur_angle = angle; // Current value
 
-  if (grad < 0) {
+  if (degree < 0) {
 
     // Left rotation (lets the gyroscope output negative values)
     // Wait until the gyroscope has detected a complete X° rotation (<-180)
-    while (cur_angle <= angle + grad) {
+    while (cur_angle <= angle + degree) {
       mpu6050.update(); // Update sensor values
       cur_angle = mpu6050.getAngleZ(); // Transfer Z axis values (rotation angle)
-      wartezeit(gyro_delay);
+      wait(gyro_delay);
     }
   }
   else {
     // Clockwise rotation (allows the gyroscope to output positive values)
     // Wait until the gyroscope has detected a complete X° rotation (<-180)
-    while (cur_angle >= angle - grad) {
+    while (cur_angle >= angle - degree) {
       mpu6050.update(); // Update sensor values
       cur_angle = mpu6050.getAngleZ(); // Transfer Z axis values (rotation angle)
-      wartezeit(gyro_delay);
+      wait(gyro_delay);
     }
   }
   // Turn(ing) finished
   return 1;
 }
-// ######################## WARTEZEIT ########################
+// ######################## WAIT ########################
 // Replaces delay() with millis()
-void wartezeit(unsigned short dauer) {
+void wait(unsigned short duration) {
   unsigned short currentMillis = 0; // Current time
   unsigned short startMillis = (unsigned short)millis(); // Starting point of the function in ms
 
   // Execute as long as the duration has not elapsed.
-  while (currentMillis - startMillis <= dauer) {
+  while (currentMillis - startMillis <= duration) {
     currentMillis = (unsigned short)millis(); // Current time in ms
   }
 }
