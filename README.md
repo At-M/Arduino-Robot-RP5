@@ -5,25 +5,25 @@ This code was written under time pressure and is anything but good. (for example
 Images may follow.
 
 
-##Additional Info:
+## Additional Info:
 
   Values for motorspeeds may change depending on the smoothness of your floor, I'm leaving my default values in (smooth but "rubbery" PVC floor)
   Right or left motor may swap, depending on your wiring.
     To find out the needed value for ir_dist, build a loop which prints the received value from the sensor into serial monitor, move your robot at the desired distance from the wall, use that value (or a median of the last few printed)
 
- ##DEBUGGING:
+ ## DEBUGGING:
 
   Put a red led between ground and pin 12, put a green led between ground and pin 11
   The pins are hardcoded right now, but may change.
   
-  *LED ON* | *LED red* | *LED green*
+  **LED ON** | **LED red** | **LED green**
   --- | --- | ---
   during unplanned left turn | / | distance right not enough
   during unplanned right turn | distance left not enough | /
   during right turn | 180° turn initiated | 90° turn initiated
   
 
- ##Module sources:
+ ## Module sources:
 
   Infrared Sharp (GP2Y0A21YK0F, distance sensor):
   
