@@ -1,5 +1,6 @@
 # Arduino-Robot-RP5
 A selfdriving robot, using an Arduino and RP5-CH02 as a chassis.
+
 This code was written under time pressure and is anything but good. (for example: global variables)
 
 Images may follow.
@@ -8,8 +9,10 @@ Images may follow.
 ## Additional Info:
 
   Values for motorspeeds may change depending on the smoothness of your floor, I'm leaving my default values in (smooth but "rubbery" PVC floor)
+  
   Right or left motor may swap, depending on your wiring.
-    To find out the needed value for ir_dist, build a loop which prints the received value from the sensor into serial monitor, move your robot at the desired distance from the wall, use that value (or a median of the last few printed)
+  
+  To find out the needed value for ir_dist, build a loop which prints the received value from the sensor into serial monitor, move your robot at the desired distance from the wall, use that value (or a median of the last few printed)
 
  ## DEBUGGING:
 
