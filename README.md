@@ -51,9 +51,9 @@ Images may follow.
   [Pinout](https://www.petervis.com/GCSE_Design_and_Technology_Electronic_Products/nand-gate-timers/nand-gate-timer-delay-on/cd4093b-pinout.gif)
 
   
-  **Bracket for Ultrasonic sensor (I modified this one)**
+  **Bracket for Ultrasonic sensor**
   
-  [Thingiverse](https://www.thingiverse.com/thing:189585)
+  [Thingiverse (modified to hold IR sensor)](https://www.thingiverse.com/thing:189585)
 
   
   **Gearbox cover**
